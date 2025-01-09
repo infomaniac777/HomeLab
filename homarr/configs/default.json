@@ -12,55 +12,6 @@
   ],
   "apps": [
     {
-      "id": "66fd252d-b6df-41e3-bfe1-68f94c54d010",
-      "name": "cAdvisor",
-      "url": "http://192.168.0.7:9400",
-      "appearance": {
-        "iconUrl": "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/cadvisor.png",
-        "appNameStatus": "normal",
-        "positionAppName": "column",
-        "lineClampAppName": 1,
-        "appNameFontSize": 16
-      },
-      "network": {
-        "enabledStatusChecker": true,
-        "statusCodes": [
-          "200",
-          "301",
-          "302",
-          "304",
-          "307",
-          "308"
-        ]
-      },
-      "behaviour": {
-        "isOpeningNewTab": true,
-        "externalUrl": "http://192.168.0.7:9400/containers/"
-      },
-      "area": {
-        "type": "wrapper",
-        "properties": {
-          "id": "default"
-        }
-      },
-      "shape": {
-        "lg": {
-          "location": {
-            "x": 5,
-            "y": 0
-          },
-          "size": {
-            "width": 1,
-            "height": 1
-          }
-        }
-      },
-      "integration": {
-        "type": null,
-        "properties": []
-      }
-    },
-    {
       "id": "5df743d9-5cb1-457c-85d2-64ff86855652",
       "name": "Documentation",
       "url": "https://homarr.dev",
@@ -322,44 +273,6 @@
       }
     },
     {
-      "id": "c8bba4bc-3181-44ee-8f6c-f3a4e1c08fd5",
-      "name": "YouCast",
-      "url": "http://192.168.0.7:8123/dashboard",
-      "appearance": {
-        "iconUrl": "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/chromecast-light.png",
-        "appNameStatus": "normal",
-        "positionAppName": "column",
-        "lineClampAppName": 1,
-        "appNameFontSize": 16
-      },
-      "network": {
-        "enabledStatusChecker": true,
-        "statusCodes": [
-          "200",
-          "301",
-          "302",
-          "304",
-          "307",
-          "308"
-        ]
-      },
-      "behaviour": {
-        "isOpeningNewTab": true,
-        "externalUrl": "http://192.168.0.7:8123/dashboard"
-      },
-      "area": {
-        "type": "wrapper",
-        "properties": {
-          "id": "default"
-        }
-      },
-      "shape": {},
-      "integration": {
-        "type": null,
-        "properties": []
-      }
-    },
-    {
       "id": "dd678f8d-0006-4954-a8ef-b82ce9ee42be",
       "name": "Pi-hole",
       "url": "http://192.168.0.7:8100/admin",
@@ -395,6 +308,104 @@
         "lg": {
           "location": {
             "x": 0,
+            "y": 0
+          },
+          "size": {
+            "width": 1,
+            "height": 1
+          }
+        }
+      },
+      "integration": {
+        "type": null,
+        "properties": []
+      }
+    },
+    {
+      "id": "66fd252d-b6df-41e3-bfe1-68f94c54d010",
+      "name": "cAdvisor",
+      "url": "http://192.168.0.7:9400",
+      "appearance": {
+        "iconUrl": "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/cadvisor.png",
+        "appNameStatus": "normal",
+        "positionAppName": "column",
+        "lineClampAppName": 1,
+        "appNameFontSize": 16
+      },
+      "network": {
+        "enabledStatusChecker": true,
+        "statusCodes": [
+          "200",
+          "301",
+          "302",
+          "304",
+          "307",
+          "308"
+        ]
+      },
+      "behaviour": {
+        "isOpeningNewTab": true,
+        "externalUrl": "http://192.168.0.7:9400/containers/"
+      },
+      "area": {
+        "type": "wrapper",
+        "properties": {
+          "id": "default"
+        }
+      },
+      "shape": {
+        "lg": {
+          "location": {
+            "x": 5,
+            "y": 0
+          },
+          "size": {
+            "width": 1,
+            "height": 1
+          }
+        }
+      },
+      "integration": {
+        "type": null,
+        "properties": []
+      }
+    },
+    {
+      "id": "c8bba4bc-3181-44ee-8f6c-f3a4e1c08fd5",
+      "name": "YouCast",
+      "url": "http://192.168.0.7:8123/dashboard",
+      "appearance": {
+        "iconUrl": "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/chromecast-light.png",
+        "appNameStatus": "normal",
+        "positionAppName": "column",
+        "lineClampAppName": 1,
+        "appNameFontSize": 16
+      },
+      "network": {
+        "enabledStatusChecker": true,
+        "statusCodes": [
+          "200",
+          "301",
+          "302",
+          "304",
+          "307",
+          "308"
+        ]
+      },
+      "behaviour": {
+        "isOpeningNewTab": true,
+        "externalUrl": "http://192.168.0.7:8123/dashboard"
+      },
+      "area": {
+        "type": "wrapper",
+        "properties": {
+          "id": "default"
+        }
+      },
+      "shape": {
+        "lg": {
+          "location": {
+            "x": 6,
             "y": 0
           },
           "size": {
@@ -472,17 +483,17 @@
         "enabledPing": true,
         "enabledSearchbar": true
       },
-      "pageTitle": "Hades",
+      "pageTitle": "HADES SERVER",
       "logoImageUrl": "/imgs/favicon/favicon-squared.png",
       "faviconUrl": "/imgs/favicon/favicon-squared.png",
-      "backgroundImageUrl": "",
+      "backgroundImageUrl": "/custom_imgs/Hades-and-Persophene-in-the-underworld.webp",
       "customCss": "",
       "colors": {
         "primary": "red",
         "secondary": "yellow",
         "shade": 7
       },
-      "appOpacity": 100,
+      "appOpacity": 70,
       "gridstack": {
         "columnCountSmall": 3,
         "columnCountMedium": 6,
