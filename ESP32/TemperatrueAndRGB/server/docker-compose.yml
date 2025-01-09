@@ -1,0 +1,7 @@
+services:
+  temperature-server:
+    build: .
+    container_name: esp32-temp-server
+    ports:
+      - "3100:3100"
+    restart: unless-stopped

@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HADES - System Services Dashboard</title>
+    <style>
+        :root {
+            --primary-color: #4a56d6;
+            --secondary-color: #FF8C00;
+            --bg-gradient-start: #1E1E1E;
+            --bg-gradient-end: #2C3E50;
+            --card-bg: rgba(51, 51, 51, 0.9);
+            --text-color: #FFFFFF;
+            --text-muted: #BBBBBB;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, var(--bg-gradient-start), var(--bg-gradient-end)) fixed;
+            color: var(--text-color);
+            min-height: 100vh;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .header img {
+            max-width: 300px; /* Increase the max-width to make the image bigger */
+            height: auto;
+            margin-bottom: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        h1 {
+            font-size: 2rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+            letter-spacing: 2px;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            color: var(--secondary-color);
+            text-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+            font-weight: 500;
+        }
+
+        .services-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+            max-width: 1400px;
+            width: 100%;
+            padding: 1rem;
+        }
+
+        .service {
+            background-color: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-decoration: none;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .service:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(74, 86, 214, 0.3);
+            border-color: var(--primary-color);
+        }
+
+        .service h3 {
+            color: var(--primary-color);
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .service p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            margin: 0.5rem 0;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 768px) {
+            body { 
+                padding: 1rem; 
+            }
+            
+            .services-container {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            h2 {
+                font-size: 1.5rem;
+            }
+
+            .header img {
+                max-width: 200px; /* Adjust the max-width for smaller screens */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img src="./img/Hades-and-Persophene-in-the-underworld.webp" alt="HADES Logo">
+        <h1>HADES SERVER</h1>
+        <h2>System Services Dashboard</h2>
+    </div>
+    <div class="services-container">
+        <a href="/grafana/d/rYdddlPWk/node-exporter-full" class="service">
+            <h3>Grafana Node Exporter</h3>
+            <p>Path: /grafana/d/rYdddlPWk/node-exporter-full</p>
+            <p>Original Port: 3000</p>
+        </a>
+        <a href="/prometheus/" class="service">
+            <h3>Prometheus</h3>
+            <p>Path: /prometheus/</p>
+            <p>Original Port: 9090</p>
+        </a>
+        <a href="/httpd/" class="service">
+            <h3>HTTPD Server</h3>
+            <p>Path: /httpd/</p>
+            <p>Original Port: 8080</p>
+        </a>
+        <a href="/flask/" class="service">
+            <h3>Flask ADB Server</h3>
+            <p>Path: /flask/</p>
+            <p>Original Port: 8123</p>
+        </a>
+        <a href="/cadvisor/" class="service">
+            <h3>cAdvisor</h3>
+            <p>Path: /cadvisor/</p>
+            <p>Original Port: 9400</p>
+        </a>
+        <a href="/mantis/" class="service">
+            <h3>MantisBT</h3>
+            <p>Path: /mantis/</p>
+            <p>Original Port: 4000</p>
+        </a>
+    </div>
+</body>
+</html>

@@ -1,0 +1,7 @@
+services:
+  speedtest-exporter:
+    image: miguelndecarvalho/speedtest-exporter
+    container_name: speedtest-exporter
+    ports:
+      - 9798:9798
+    restart: unless-stopped

@@ -1,0 +1,14 @@
+services:
+  nginx-http3-gateway:
+    image: ghcr.io/macbre/nginx-http3:latest
+    container_name: nginx-http3-gateway
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ${PWD}/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ${PWD}/services.html:/usr/share/nginx/html/services.html:ro
+      - ${PWD}/tls:/etc/nginx/tls:ro
+      - ${PWD}/img:/usr/share/nginx/html/img:ro

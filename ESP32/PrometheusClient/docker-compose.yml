@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  esp32client:
+    container_name: esp32-prometheus-client
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: esp32-prometheus-client:1.0.0
+    ports:
+      - "8700:8700"
+    environment:
+      - ESP32_IP=192.168.0.51
+      - PORT=8700
+      - INTERVAL=5
+      - VERSION=1.0.0
+    restart: unless-stopped

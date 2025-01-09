@@ -1,0 +1,10 @@
+services:
+  wireguard-exporter:
+    image: mindflavor/prometheus-wireguard-exporter
+    container_name: wgexporter
+    network_mode: "host"
+    cap_add:
+      - NET_ADMIN
+    command:
+      - "--prepend_sudo=true"
+    restart: unless-stopped

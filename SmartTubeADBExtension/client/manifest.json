@@ -1,0 +1,16 @@
+{
+    "manifest_version": 3,
+    "name": "YouTube Play on TV",
+    "version": "1.0",
+    "description": "Send YouTube video to TV when clicking the extension icon",
+    "permissions": [
+      "activeTab",
+      "scripting",
+      "tabs"
+    ],
+    "background": {
+      "service_worker": "background.js"
+    },
+    "action": {
+    }
+  }

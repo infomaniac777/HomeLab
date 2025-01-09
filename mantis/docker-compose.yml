@@ -1,0 +1,37 @@
+services:
+  mantisbt:
+    container_name: mantis_bt
+    image: xlrl/mantisbt:latest
+    environment:
+      MANTIS_TIMEZONE: Asia/Kolkata
+      MANTIS_ENABLE_ADMIN: 1
+    ports:
+      - "4000:80"
+    volumes:
+      - config:/var/www/html/config
+      - custom:/var/www/html/custom
+      - ${PWD}/../nginx/tls/nginx.crt:/usr/local/share/ca-certificates/nginx.crt:ro
+    entrypoint: |
+      sh -c '
+        update-ca-certificates;
+        echo "date.timezone = Asia/Kolkata" >> /usr/local/etc/php/php.ini;
+        docker-php-entrypoint apache2-foreground
+      '
+    restart: unless-stopped
+
+  mysql:
+    container_name: mantis_db
+    image: mariadb:latest
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: bugtracker
+      MYSQL_USER: mantisbt
+      MYSQL_PASSWORD: mantisbt
+    volumes:
+      - db:/var/lib/mysql
+    restart: unless-stopped
+
+volumes:
+  config:
+  custom:
+  db:

@@ -1,0 +1,5 @@
+venv/
+nohup.out
+*.tar
+*.db
+**/.DS_Store

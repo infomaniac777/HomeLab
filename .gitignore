@@ -1,0 +1,7 @@
+# All dotfiles and dotfolders except specific ones we want to track
+.*
+!.gitignore
+
+# Certificate and key files
+*.cert
+*.key

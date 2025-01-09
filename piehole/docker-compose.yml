@@ -1,0 +1,25 @@
+# More info at https://github.com/pi-hole/docker-pi-hole/ and https://docs.pi-hole.net/
+services:
+  pihole:
+    container_name: pihole
+    image: pihole/pihole:latest
+    network_mode: "host"
+    environment:
+      TZ: 'Asia/Kolkata'
+      WEBPASSWORD: 'admin'
+      DNS1: '8.8.8.8'
+      DNS2: '8.8.4.4'
+      WEB_PORT: '8100'
+    volumes:
+      - 'pihole_data:/etc/pihole'
+      - 'dnsmasq_data:/etc/dnsmasq.d'
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "dig", "@127.0.0.1", "pi.hole"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  pihole_data:
+  dnsmasq_data:
