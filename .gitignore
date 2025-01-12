@@ -5,3 +5,6 @@
 # Certificate and key files
 *.cert
 *.key
+
+# Audio files
+*.wav

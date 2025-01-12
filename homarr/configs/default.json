@@ -12,30 +12,30 @@
   ],
   "apps": [
     {
-      "id": "5df743d9-5cb1-457c-85d2-64ff86855652",
-      "name": "Documentation",
-      "url": "https://homarr.dev",
-      "behaviour": {
-        "onClickUrl": "https://homarr.dev",
-        "externalUrl": "https://homarr.dev",
-        "isOpeningNewTab": true
-      },
-      "network": {
-        "enabledStatusChecker": false,
-        "statusCodes": [
-          "200"
-        ]
-      },
+      "id": "66fd252d-b6df-41e3-bfe1-68f94c54d010",
+      "name": "cAdvisor",
+      "url": "http://192.168.0.7:9400",
       "appearance": {
-        "iconUrl": "/imgs/logo/logo.png",
+        "iconUrl": "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/cadvisor.png",
         "appNameStatus": "normal",
         "positionAppName": "column",
         "lineClampAppName": 1,
         "appNameFontSize": 16
       },
-      "integration": {
-        "type": null,
-        "properties": []
+      "network": {
+        "enabledStatusChecker": true,
+        "statusCodes": [
+          "200",
+          "301",
+          "302",
+          "304",
+          "307",
+          "308"
+        ]
+      },
+      "behaviour": {
+        "isOpeningNewTab": true,
+        "externalUrl": "http://192.168.0.7:9400/containers/"
       },
       "area": {
         "type": "wrapper",
@@ -44,36 +44,118 @@
         }
       },
       "shape": {
-        "md": {
+        "lg": {
           "location": {
             "x": 5,
-            "y": 1
+            "y": 0
           },
           "size": {
             "width": 1,
             "height": 1
           }
-        },
-        "sm": {
-          "location": {
-            "x": 0,
-            "y": 1
-          },
-          "size": {
-            "width": 1,
-            "height": 2
-          }
-        },
+        }
+      },
+      "integration": {
+        "type": null,
+        "properties": []
+      }
+    },
+    {
+      "id": "c8bba4bc-3181-44ee-8f6c-f3a4e1c08fd5",
+      "name": "YouCast",
+      "url": "http://192.168.0.7:8123/dashboard",
+      "appearance": {
+        "iconUrl": "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/chromecast-light.png",
+        "appNameStatus": "normal",
+        "positionAppName": "column",
+        "lineClampAppName": 1,
+        "appNameFontSize": 16
+      },
+      "network": {
+        "enabledStatusChecker": true,
+        "statusCodes": [
+          "200",
+          "301",
+          "302",
+          "304",
+          "307",
+          "308"
+        ]
+      },
+      "behaviour": {
+        "isOpeningNewTab": true,
+        "externalUrl": "http://192.168.0.7:8123/dashboard"
+      },
+      "area": {
+        "type": "wrapper",
+        "properties": {
+          "id": "default"
+        }
+      },
+      "shape": {
         "lg": {
           "location": {
             "x": 6,
-            "y": 11
+            "y": 0
           },
           "size": {
-            "width": 2,
-            "height": 2
+            "width": 1,
+            "height": 1
           }
         }
+      },
+      "integration": {
+        "type": null,
+        "properties": []
+      }
+    },
+    {
+      "id": "39782336-00ee-4cbc-a586-f4ba079564a1",
+      "name": "Uptime Kuma",
+      "url": "http://192.168.0.7:3002",
+      "appearance": {
+        "iconUrl": "https://cdn.jsdelivr.net/gh/loganmarchione/homelab-svg-assets/assets/uptimekuma.svg",
+        "appNameStatus": "normal",
+        "positionAppName": "column",
+        "lineClampAppName": 1,
+        "appNameFontSize": 16
+      },
+      "network": {
+        "enabledStatusChecker": true,
+        "statusCodes": [
+          "200",
+          "301",
+          "302",
+          "304",
+          "307",
+          "308"
+        ]
+      },
+      "behaviour": {
+        "isOpeningNewTab": true,
+        "externalUrl": "http://192.168.0.7:3002/dashboard"
+      },
+      "area": {
+        "type": "wrapper",
+        "properties": {
+          "id": "default"
+        }
+      },
+      "shape": {
+        "lg": {
+          "location": {
+            "x": 4,
+            "y": 0
+          },
+          "size": {
+            "width": 1,
+            "height": 1
+          }
+        }
+      },
+      "integration": {
+        "type": null,
+        "properties": []
       }
     },
     {
@@ -161,55 +243,6 @@
         "lg": {
           "location": {
             "x": 2,
-            "y": 0
-          },
-          "size": {
-            "width": 1,
-            "height": 1
-          }
-        }
-      },
-      "integration": {
-        "type": null,
-        "properties": []
-      }
-    },
-    {
-      "id": "39782336-00ee-4cbc-a586-f4ba079564a1",
-      "name": "Uptime Kumar",
-      "url": "http://192.168.0.7:3002",
-      "appearance": {
-        "iconUrl": "https://cdn.jsdelivr.net/gh/loganmarchione/homelab-svg-assets/assets/uptimekuma.svg",
-        "appNameStatus": "normal",
-        "positionAppName": "column",
-        "lineClampAppName": 1,
-        "appNameFontSize": 16
-      },
-      "network": {
-        "enabledStatusChecker": true,
-        "statusCodes": [
-          "200",
-          "301",
-          "302",
-          "304",
-          "307",
-          "308"
-        ]
-      },
-      "behaviour": {
-        "isOpeningNewTab": true,
-        "externalUrl": "http://192.168.0.7:3002/dashboard"
-      },
-      "area": {
-        "type": "wrapper",
-        "properties": {
-          "id": "default"
-        }
-      },
-      "shape": {
-        "lg": {
-          "location": {
-            "x": 4,
             "y": 0
           },
           "size": {
@@ -320,154 +353,9 @@
         "type": null,
         "properties": []
       }
-    },
-    {
-      "id": "66fd252d-b6df-41e3-bfe1-68f94c54d010",
-      "name": "cAdvisor",
-      "url": "http://192.168.0.7:9400",
-      "appearance": {
-        "iconUrl": "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/cadvisor.png",
-        "appNameStatus": "normal",
-        "positionAppName": "column",
-        "lineClampAppName": 1,
-        "appNameFontSize": 16
-      },
-      "network": {
-        "enabledStatusChecker": true,
-        "statusCodes": [
-          "200",
-          "301",
-          "302",
-          "304",
-          "307",
-          "308"
-        ]
-      },
-      "behaviour": {
-        "isOpeningNewTab": true,
-        "externalUrl": "http://192.168.0.7:9400/containers/"
-      },
-      "area": {
-        "type": "wrapper",
-        "properties": {
-          "id": "default"
-        }
-      },
-      "shape": {
-        "lg": {
-          "location": {
-            "x": 5,
-            "y": 0
-          },
-          "size": {
-            "width": 1,
-            "height": 1
-          }
-        }
-      },
-      "integration": {
-        "type": null,
-        "properties": []
-      }
-    },
-    {
-      "id": "c8bba4bc-3181-44ee-8f6c-f3a4e1c08fd5",
-      "name": "YouCast",
-      "url": "http://192.168.0.7:8123/dashboard",
-      "appearance": {
-        "iconUrl": "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/chromecast-light.png",
-        "appNameStatus": "normal",
-        "positionAppName": "column",
-        "lineClampAppName": 1,
-        "appNameFontSize": 16
-      },
-      "network": {
-        "enabledStatusChecker": true,
-        "statusCodes": [
-          "200",
-          "301",
-          "302",
-          "304",
-          "307",
-          "308"
-        ]
-      },
-      "behaviour": {
-        "isOpeningNewTab": true,
-        "externalUrl": "http://192.168.0.7:8123/dashboard"
-      },
-      "area": {
-        "type": "wrapper",
-        "properties": {
-          "id": "default"
-        }
-      },
-      "shape": {
-        "lg": {
-          "location": {
-            "x": 6,
-            "y": 0
-          },
-          "size": {
-            "width": 1,
-            "height": 1
-          }
-        }
-      },
-      "integration": {
-        "type": null,
-        "properties": []
-      }
     }
   ],
-  "widgets": [
-    {
-      "id": "86b1921f-efa7-410f-92dd-79553bf3264d",
-      "type": "notebook",
-      "properties": {
-        "showToolbar": true,
-        "content": "<h2><strong>Welcome to Homarr 🚀👋</strong></h2><p>We're glad that you're here! Homarr is a <em>modern </em>and <em>easy to use</em> dashboard that helps you to <strong>organize and manage</strong> your home network from one place. Control is <strong>at your fingertips</strong>.</p><p>We recommend you to read the <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"https://homarr.dev/docs/getting-started/after-the-installation\">getting started guide</a> first. To edit this board you must enter the edit mode - only administrators can do this. Adding an app is the first step you should take. You can do this by clicking the <code>Add tile</code> button at the top right and select <code>App</code>. After you provided an internal URL, external URL and selected an icon you can drag it around when holding down the left mouse button. Make it bigger or smaller using the drag icon at the bottom right. When you're happy with it's position, you <strong>must exit edit mode to save your board</strong>. Adding widgets works the same way but may require additional configuration - read the documentation for more information.</p><p>To remove this widget, you must log in to your administrator account and click on the menu to delete it.</p><p><strong><u>Your TODO list:</u></strong></p><ul data-type=\"taskList\"><li data-checked=\"false\" data-type=\"taskItem\"><label><input type=\"checkbox\"><span></span></label><div><p>Read the <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"https://homarr.dev\">documentation</a></p></div></li><li data-checked=\"false\" data-type=\"taskItem\"><label><input type=\"checkbox\"><span></span></label><div><p>Add your <em>first app</em></p></div></li><li data-checked=\"false\" data-type=\"taskItem\"><label><input type=\"checkbox\"><span></span></label><div><p><em>Resize </em>and <em>drag</em> your app to a different position</p></div></li><li data-checked=\"false\" data-type=\"taskItem\"><label><input type=\"checkbox\"><span></span></label><div><p>Add the <em>clock widget</em> to your dashboard</p></div></li><li data-checked=\"false\" data-type=\"taskItem\"><label><input type=\"checkbox\"><span></span></label><div><p>Create a <em>new user</em></p></div></li></ul>"
-      },
-      "area": {
-        "type": "wrapper",
-        "properties": {
-          "id": "default"
-        }
-      },
-      "shape": {
-        "sm": {
-          "location": {
-            "x": 0,
-            "y": 0
-          },
-          "size": {
-            "width": 3,
-            "height": 2
-          }
-        },
-        "md": {
-          "location": {
-            "x": 0,
-            "y": 0
-          },
-          "size": {
-            "width": 3,
-            "height": 4
-          }
-        },
-        "lg": {
-          "location": {
-            "x": 0,
-            "y": 11
-          },
-          "size": {
-            "width": 6,
-            "height": 3
-          }
-        }
-      }
-    }
-  ],
+  "widgets": [],
   "settings": {
     "common": {
       "searchEngine": {

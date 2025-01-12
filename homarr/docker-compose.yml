@@ -13,4 +13,4 @@ services:
       - ./custom_imgs:/app/public/custom_imgs
       - ./data:/data
     ports:
-      - '7575:7575'
+      - '80:7575'
