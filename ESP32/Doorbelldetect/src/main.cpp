@@ -1,28 +1,55 @@
+#include <WiFi.h>
+#include <WiFiUdp.h>
 #include <driver/i2s.h>
 #include <Arduino.h>
+#include <algorithm>
 
-#define I2S_WS 22
-#define I2S_SD 21
-#define I2S_SCK 19
-#define SAMPLE_RATE 4000
-#define BUFFER_SIZE 1024
+// Network settings
+const char* ssid = "YOUR_WIFI_SSID";
+const char* password = "YOUR_WIFI_PASSWORD";
+const char* udpAddress = "192.168.0.9";  // Server IP
+const int udpPort = 3003;
+
+// Pin Definitions
+#define I2S_WS 22    // Word Select (WS) pin
+#define I2S_SD 21    // Serial Data (SD) pin
+#define I2S_SCK 19    // Serial Clock (SCK) pin
+#define SAMPLE_RATE 44100  // CD quality
+#define BUFFER_SIZE 1024   // Match server buffer
+#define LED_PIN 2  // Built-in LED on ESP32
+
+#define MAX_UDP_PACKET_SIZE 1472  // Standard MTU minus headers
+#define UDP_SEND_DELAY 5          // ms between packets
+
+WiFiUDP udp;
 
 void setup() {
-    Serial.begin(9600);  // Increase baud rate
+    Serial.begin(9600);  // Adjusted baud rate
     delay(1000);  // Give serial time to initialize
-    Serial.println("Starting I2S Microphone test...");
+    Serial.println("I2S Microphone Test");
+    
+    pinMode(LED_PIN, OUTPUT);
+    digitalWrite(LED_PIN, LOW);
+    
+    // Connect to WiFi
+    WiFi.begin(ssid, password);
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(500);
+        Serial.print(".");
+    }
+    Serial.println("\nWiFi connected");
     
     const i2s_config_t i2s_config = {
         .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_RX),
         .sample_rate = SAMPLE_RATE,
-        .bits_per_sample = I2S_BITS_PER_SAMPLE_32BIT,
-        .channel_format = I2S_CHANNEL_FMT_ONLY_LEFT,
+        .bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT,  // Changed to 16-bit
+        .channel_format = I2S_CHANNEL_FMT_ONLY_LEFT,   // Changed for grounded L/R pin
         .communication_format = i2s_comm_format_t(I2S_COMM_FORMAT_STAND_I2S),
         .intr_alloc_flags = ESP_INTR_FLAG_LEVEL1,
-        .dma_buf_count = 4,
+        .dma_buf_count = 8,        // Increased for smoother streaming
         .dma_buf_len = BUFFER_SIZE,
-        .use_apll = false,
-        .tx_desc_auto_clear = false,
+        .use_apll = true,         // Enable APLL for better clock accuracy
+        .tx_desc_auto_clear = true,
         .fixed_mclk = 0
     };
 
@@ -44,38 +71,39 @@ void setup() {
         Serial.printf("Failed to set I2S pins: %d\n", err);
         while(1);
     }
+
+    // Add debug output
+    Serial.printf("I2S Config: SCK=%d, WS=%d, SD=%d, Rate=%d\n", 
+                 I2S_SCK, I2S_WS, I2S_SD, SAMPLE_RATE);
 }
 
 void loop() {
-    int32_t samples[BUFFER_SIZE];
+    static uint8_t buffer[MAX_UDP_PACKET_SIZE];
+    static int bufferIndex = 0;
+    int16_t samples[BUFFER_SIZE];
     size_t bytes_read = 0;
     
     esp_err_t err = i2s_read(I2S_NUM_0, samples, sizeof(samples), &bytes_read, portMAX_DELAY);
-    if (err != ESP_OK) {
-        Serial.printf("Failed to read I2S data: %d\n", err);
-        delay(1000);
-        return;
-    }
-    
-    // Calculate average amplitude with scaling
-    int32_t sum = 0;
-    for(int i = 0; i < BUFFER_SIZE; i++) {
-        // Scale down 32-bit value and take absolute value
-        int32_t scaled = abs(samples[i] >> 16);  // Scale down to 16-bit
-        sum += scaled;
+    if (err == ESP_OK && bytes_read > 0) {
+        uint8_t* data = (uint8_t*)samples;
+        int remaining = bytes_read;
         
-        if (i < 10) {  // Print first 10 samples only
-            Serial.printf("Sample[%d]: Raw=%ld, Scaled=%ld\n", i, samples[i], scaled);
+        while (remaining > 0) {
+            int copySize = min(remaining, MAX_UDP_PACKET_SIZE - bufferIndex);
+            memcpy(buffer + bufferIndex, data, copySize);
+            bufferIndex += copySize;
+            
+            if (bufferIndex >= MAX_UDP_PACKET_SIZE) {
+                digitalWrite(LED_PIN, HIGH);  // LED on before send
+                udp.beginPacket(udpAddress, udpPort);
+                udp.write(buffer, MAX_UDP_PACKET_SIZE);
+                udp.endPacket();
+                digitalWrite(LED_PIN, LOW);   // LED off after send
+                bufferIndex = 0;
+            }
+            
+            data += copySize;
+            remaining -= copySize;
         }
     }
-    int32_t average = sum / BUFFER_SIZE;
-    
-    // Print a visual meter with adjusted scale
-    Serial.print("Level: ");
-    for(int i = 0; i < (average >> 8); i++) {  // Adjust divisor as needed
-        Serial.print("*");
-    }
-    Serial.println();
-    
-    delay(100);  // Shorter delay for more responsive readings
 }

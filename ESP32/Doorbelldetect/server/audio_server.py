@@ -1,33 +1,44 @@
 import socket
 import wave
 import struct
+from datetime import datetime
+import os
 
 # UDP server configuration
-UDP_IP = "0.0.0.0"  # Listen on all available interfaces
+UDP_IP = "0.0.0.0"
 UDP_PORT = 3003
 
-# Audio file configuration
+# Improved audio settings
 CHANNELS = 1
-SAMPLE_WIDTH = 2  # 16-bit audio
-SAMPLE_RATE = 16000
+SAMPLE_WIDTH = 2  # 16-bit
+SAMPLE_RATE = 44100  # CD quality
+BUFFER_SIZE = 1024  # Increased buffer
 
-# Create UDP socket
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-sock.bind((UDP_IP, UDP_PORT))
-
-print(f"Listening on port {UDP_PORT}")
-
-# Create WAV file
-with wave.open("recorded_audio.wav", 'wb') as wav_file:
+def create_wav_file():
+    filename = "audio_recording.wav"
+    wav_file = wave.open(filename, 'wb')
     wav_file.setnchannels(CHANNELS)
     wav_file.setsampwidth(SAMPLE_WIDTH)
     wav_file.setframerate(SAMPLE_RATE)
+    return wav_file
+
+def main():
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.bind((UDP_IP, UDP_PORT))
+    print(f"Listening on port {UDP_PORT}")
+    
+    wav_file = create_wav_file()
     
     try:
         while True:
-            data, addr = sock.recvfrom(2048)  # Buffer size
+            data, addr = sock.recvfrom(BUFFER_SIZE * SAMPLE_WIDTH)
             wav_file.writeframes(data)
-            print("Received audio chunk")
+            print(".", end="", flush=True)
+            
     except KeyboardInterrupt:
-        print("\nRecording stopped")
+        print("\nSaving recording...")
+        wav_file.close()
+        
+if __name__ == "__main__":
+    main()
 
