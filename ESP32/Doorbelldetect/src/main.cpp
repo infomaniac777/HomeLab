@@ -15,7 +15,7 @@ const int udpPort = 3003;
 #define I2S_SD 21    // Serial Data (SD) pin
 #define I2S_SCK 19    // Serial Clock (SCK) pin
 #define SAMPLE_RATE 44100  // CD quality
-#define BUFFER_SIZE 1024   // Match server buffer
+#define BUFFER_SIZE 736    // Matches MTU size for 16-bit samples
 #define LED_PIN 2  // Built-in LED on ESP32
 
 #define MAX_UDP_PACKET_SIZE 1472  // Standard MTU minus headers
@@ -78,32 +78,15 @@ void setup() {
 }
 
 void loop() {
-    static uint8_t buffer[MAX_UDP_PACKET_SIZE];
-    static int bufferIndex = 0;
     int16_t samples[BUFFER_SIZE];
     size_t bytes_read = 0;
     
     esp_err_t err = i2s_read(I2S_NUM_0, samples, sizeof(samples), &bytes_read, portMAX_DELAY);
     if (err == ESP_OK && bytes_read > 0) {
-        uint8_t* data = (uint8_t*)samples;
-        int remaining = bytes_read;
-        
-        while (remaining > 0) {
-            int copySize = min(remaining, MAX_UDP_PACKET_SIZE - bufferIndex);
-            memcpy(buffer + bufferIndex, data, copySize);
-            bufferIndex += copySize;
-            
-            if (bufferIndex >= MAX_UDP_PACKET_SIZE) {
-                digitalWrite(LED_PIN, HIGH);  // LED on before send
-                udp.beginPacket(udpAddress, udpPort);
-                udp.write(buffer, MAX_UDP_PACKET_SIZE);
-                udp.endPacket();
-                digitalWrite(LED_PIN, LOW);   // LED off after send
-                bufferIndex = 0;
-            }
-            
-            data += copySize;
-            remaining -= copySize;
-        }
+        digitalWrite(LED_PIN, HIGH);
+        udp.beginPacket(udpAddress, udpPort);
+        udp.write((uint8_t*)samples, bytes_read);
+        udp.endPacket();
+        digitalWrite(LED_PIN, LOW);
     }
 }
