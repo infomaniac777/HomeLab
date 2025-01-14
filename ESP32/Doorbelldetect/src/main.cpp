@@ -89,6 +89,7 @@ void loop() {
 }
 
 void connectWiFi() {
+  Serial.println("Connecting to WiFi: ");
   WiFi.begin(ssid, password);
 
   while (WiFi.status() != WL_CONNECTED) {
@@ -100,6 +101,7 @@ void connectWiFi() {
 }
 
 void connectWSServer() {
+  Serial.println("Connecting to Websocket Server: ");
   client.onEvent(onEventsCallback);
   while (!client.connect(websocket_server_host, websocket_server_port, "/")) {
     delay(500);
@@ -117,6 +119,12 @@ void micTask(void* parameter) {
 
   size_t bytesIn = 0;
   while (1) {
+    if (WiFi.status() != WL_CONNECTED) {
+      connectWiFi();
+    }
+    if (!isWebSocketConnected) {
+      connectWSServer();
+    }
     esp_err_t result = i2s_read(I2S_PORT, &sBuffer, bufferLen, &bytesIn, portMAX_DELAY);
     if (result == ESP_OK && isWebSocketConnected) {
       client.sendBinary((const char*)sBuffer, bytesIn);
