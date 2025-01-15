@@ -1,52 +1,59 @@
-import socket
+import asyncio
+import websockets
 import wave
-import time
 from datetime import datetime
-import os
 
-# UDP server configuration
-UDP_IP = "0.0.0.0"
-UDP_PORT = 3003
-
-# Match ESP32 settings
-CHANNELS = 1
-SAMPLE_WIDTH = 2  # 16-bit
+# Configuration
+WS_PORT = 3003
+RATE_INTERVAL = 1
 SAMPLE_RATE = 44100
-BUFFER_SIZE = 736  # Matches ESP32's buffer (1472/2 bytes)
+CHANNELS = 1
+SAMPLE_WIDTH = 2
+BUFFER_SIZE = 1024
 
-def create_wav_file():
-    filename = "audio_recording.wav"
-    wav_file = wave.open(filename, 'wb')
-    wav_file.setnchannels(CHANNELS)
-    wav_file.setsampwidth(SAMPLE_WIDTH)
-    wav_file.setframerate(SAMPLE_RATE)
-    return wav_file, filename
+# State variables
+packets_received = 0
+last_check = datetime.now()
+output_file = None
 
-def main():
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.bind((UDP_IP, UDP_PORT))
-    print(f"Listening on port {UDP_PORT}")
-    
-    wav_file, filename = create_wav_file()
-    packets = 0
-    start_time = time.time()
+async def audio_server(websocket):  # Removed path parameter
+    global packets_received, last_check
+    print("Client connected")
     
     try:
-        while True:
-            data, addr = sock.recvfrom(BUFFER_SIZE * SAMPLE_WIDTH)
-            wav_file.writeframes(data)
-            packets += 1
+        async for message in websocket:
+            output_file.writeframes(message)
+            packets_received += 1
             
-            if packets % 60 == 0:  # Show stats every ~second
-                elapsed = time.time() - start_time
-                rate = packets / elapsed
-                print(f"\rRate: {rate:.1f} packets/s", end="", flush=True)
-            
-    except KeyboardInterrupt:
-        print(f"\nReceived {packets} packets in {time.time()-start_time:.1f}s")
-        wav_file.close()
-        print(f"\nSaved to {filename}")
-        
-if __name__ == "__main__":
-    main()
+            now = datetime.now()
+            if (now - last_check).total_seconds() >= RATE_INTERVAL:
+                rate = packets_received / RATE_INTERVAL
+                print(f"Rate: {rate:.1f} packets/s")
+                packets_received = 0
+                last_check = now
+                
+    except websockets.exceptions.ConnectionClosed:
+        print("Client disconnected")
 
+def init_wav_file():
+    global output_file
+    output_file = wave.open("audio_recording.wav", "wb")
+    output_file.setnchannels(CHANNELS)
+    output_file.setsampwidth(SAMPLE_WIDTH)
+    output_file.setframerate(SAMPLE_RATE)
+
+async def main():
+    init_wav_file()
+    async with websockets.serve(audio_server, "0.0.0.0", WS_PORT):
+        print(f"WebSocket server listening on port {WS_PORT}")
+        await asyncio.Future()  # run forever
+
+if __name__ == "__main__":
+    packets_received = 0
+    last_check = datetime.now()
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("\nSaving and closing...")
+        if output_file:
+            output_file.close()
