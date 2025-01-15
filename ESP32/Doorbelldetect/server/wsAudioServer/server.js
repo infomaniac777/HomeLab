@@ -1,11 +1,3 @@
-/////////////////////////////////////////////////////////////////
-/*
-  Broadcasting Your Voice with ESP32-S3 & INMP441
-  For More Information: https://youtu.be/qq2FRv0lCPw
-  Created by Eric N. (ThatProject)
-*/
-/////////////////////////////////////////////////////////////////
-
 const path = require("path");
 const express = require("express");
 const WebSocket = require("ws");
@@ -19,19 +11,29 @@ let packetsReceived = 0;
 let lastCheck = Date.now();
 const RATE_INTERVAL = 1000; // 1 second
 
+const WRITE_INTERVAL = 5 * 60 * 1000; // 5 minutes
+let lastWrite = Date.now();
+let totalBytes = 0;
+let outputFile;
+
 const wsServer = new WebSocket.Server({ port: WS_PORT }, () =>
   console.log(`WS server is listening at ws://localhost:${WS_PORT}`)
 );
 
-// Buffer for incoming audio data
-let audioBuffer = [];
+// Double buffer system
+let audioBuffers = {
+  current: [],
+  writing: []
+};
+let isWriting = false;
 
 // WebSocket connection handling
 wsServer.on("connection", (ws, req) => {
   console.log("Connected");
+  if (!outputFile) initWavFile();
 
   ws.on("message", (data) => {
-    audioBuffer.push(data);
+    audioBuffers.current.push(data);
     packetsReceived++;
     
     // Show rate every second
@@ -41,6 +43,11 @@ wsServer.on("connection", (ws, req) => {
       console.log(`Rate: ${rate.toFixed(1)} packets/s`);
       packetsReceived = 0;
       lastCheck = now;
+    }
+
+    if (now - lastWrite >= WRITE_INTERVAL) {
+      appendAudioData();
+      lastWrite = now;
     }
   });
 
@@ -71,6 +78,40 @@ function createWavHeader(audioLength) {
   return header;
 }
 
+function initWavFile() {
+  const header = createWavHeader(0);  // Initial header with 0 length
+  outputFile = fs.createWriteStream('audio_recording.wav');
+  outputFile.write(header);
+}
+
+function appendAudioData() {
+  if (isWriting || audioBuffers.current.length === 0) return;
+  
+  isWriting = true;
+  // Swap buffers
+  [audioBuffers.current, audioBuffers.writing] = [[], audioBuffers.current];
+  
+  const audioData = Buffer.concat(audioBuffers.writing);
+  outputFile.write(audioData, (err) => {
+    if (err) console.error('Write error:', err);
+    totalBytes += audioData.length;
+    console.log(`Appended ${audioData.length} bytes, total: ${totalBytes}`);
+    audioBuffers.writing = [];
+    isWriting = false;
+  });
+}
+
+function finalizeWavFile() {
+  if (outputFile) {
+    outputFile.end();
+    // Update WAV header with final size
+    const fd = fs.openSync('audio_recording.wav', 'r+');
+    const header = createWavHeader(totalBytes);
+    fs.writeSync(fd, header, 0, 44, 0);
+    fs.closeSync(fd);
+  }
+}
+
 // Write audio buffer to file on exit
 function writeAudioToFile() {
   const filename = "audio_recording.wav";
@@ -85,7 +126,8 @@ function writeAudioToFile() {
 
 // Handle process exit
 process.on("SIGINT", () => {
-  console.log("\nGracefully shutting down...");
-  writeAudioToFile();
+  console.log("\nFinalizing recording...");
+  appendAudioData();
+  finalizeWavFile();
   process.exit();
 });
