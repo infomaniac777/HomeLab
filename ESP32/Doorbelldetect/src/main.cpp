@@ -39,15 +39,12 @@ const uint16_t websocket_server_port = 3003;  // <WEBSOCKET_SERVER_PORT>
 
 using namespace websockets;
 WebsocketsClient client;
-bool isWebSocketConnected;
 
 void onEventsCallback(WebsocketsEvent event, String data) {
   if (event == WebsocketsEvent::ConnectionOpened) {
     Serial.println("Connection Opened");
-    isWebSocketConnected = true;
   } else if (event == WebsocketsEvent::ConnectionClosed) {
     Serial.println("Connection Closed");
-    isWebSocketConnected = false;
   } else if (event == WebsocketsEvent::GotPing) {
     Serial.println("Got a Ping!");
     client.pong();  // Must respond to keep connection alive
@@ -106,7 +103,6 @@ void connectWiFi() {
 
 void connectWSServer() {
   Serial.println("Connecting to Websocket Server: ");
-  client.onEvent(onEventsCallback);
   while (!client.connect(websocket_server_host, websocket_server_port, "/")) {
     delay(500);
     Serial.print(".");
@@ -128,18 +124,18 @@ void micTask(void* parameter) {
         if (WiFi.status() != WL_CONNECTED) {
             connectWiFi();
         }
-        if (!isWebSocketConnected) {
+        if (!client.available()) {
             connectWSServer();
         }
 
         // Send ping every 20s
-        if (millis() - lastPing > PING_INTERVAL && isWebSocketConnected) {
+        if (millis() - lastPing > PING_INTERVAL) {
             client.ping();
             lastPing = millis();
         }
 
         esp_err_t result = i2s_read(I2S_PORT, &sBuffer, bufferLen, &bytesIn, portMAX_DELAY);
-        if (result == ESP_OK && isWebSocketConnected) {
+        if (result == ESP_OK) {
             client.sendBinary((const char*)sBuffer, bytesIn);
         }
     }
@@ -149,6 +145,7 @@ void setup() {
   Serial.begin(9600);
 
   connectWiFi();
+  client.onEvent(onEventsCallback);
   connectWSServer();
   xTaskCreatePinnedToCore(micTask, "micTask", 10000, NULL, 1, NULL, 1);
 }

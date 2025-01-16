@@ -15,6 +15,7 @@ BUFFER_SIZE = 1024
 packets_received = 0
 last_check = datetime.now()
 output_file = None
+total_disconnected = 0
 
 async def audio_server(websocket):  # Removed path parameter
     global packets_received, last_check
@@ -33,7 +34,10 @@ async def audio_server(websocket):  # Removed path parameter
                 last_check = now
                 
     except websockets.exceptions.ConnectionClosed:
-        print("Client disconnected")
+        total_disconnected += 1
+        print("Client disconnected, total: ", total_disconnected)
+
+        
 
 def init_wav_file():
     global output_file
