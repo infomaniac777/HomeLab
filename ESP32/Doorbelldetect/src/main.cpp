@@ -43,13 +43,14 @@ bool isWebSocketConnected;
 
 void onEventsCallback(WebsocketsEvent event, String data) {
   if (event == WebsocketsEvent::ConnectionOpened) {
-    Serial.println("Connnection Opened");
+    Serial.println("Connection Opened");
     isWebSocketConnected = true;
   } else if (event == WebsocketsEvent::ConnectionClosed) {
-    Serial.println("Connnection Closed");
+    Serial.println("Connection Closed");
     isWebSocketConnected = false;
   } else if (event == WebsocketsEvent::GotPing) {
     Serial.println("Got a Ping!");
+    client.pong();  // Must respond to keep connection alive
   } else if (event == WebsocketsEvent::GotPong) {
     Serial.println("Got a Pong!");
   }
@@ -86,6 +87,9 @@ void i2s_setpin() {
 }
 
 void loop() {
+    // Handle WebSocket events
+    client.poll();
+    delay(10);
 }
 
 void connectWiFi() {
@@ -112,24 +116,33 @@ void connectWSServer() {
 
 
 void micTask(void* parameter) {
+    i2s_install();
+    i2s_setpin();
+    i2s_start(I2S_PORT);
 
-  i2s_install();
-  i2s_setpin();
-  i2s_start(I2S_PORT);
+    unsigned long lastPing = 0;
+    const unsigned long PING_INTERVAL = 20000; // 20s ping interval
+    size_t bytesIn = 0;
 
-  size_t bytesIn = 0;
-  while (1) {
-    if (WiFi.status() != WL_CONNECTED) {
-      connectWiFi();
+    while (1) {
+        if (WiFi.status() != WL_CONNECTED) {
+            connectWiFi();
+        }
+        if (!isWebSocketConnected) {
+            connectWSServer();
+        }
+
+        // Send ping every 20s
+        if (millis() - lastPing > PING_INTERVAL && isWebSocketConnected) {
+            client.ping();
+            lastPing = millis();
+        }
+
+        esp_err_t result = i2s_read(I2S_PORT, &sBuffer, bufferLen, &bytesIn, portMAX_DELAY);
+        if (result == ESP_OK && isWebSocketConnected) {
+            client.sendBinary((const char*)sBuffer, bytesIn);
+        }
     }
-    if (!isWebSocketConnected) {
-      connectWSServer();
-    }
-    esp_err_t result = i2s_read(I2S_PORT, &sBuffer, bufferLen, &bytesIn, portMAX_DELAY);
-    if (result == ESP_OK && isWebSocketConnected) {
-      client.sendBinary((const char*)sBuffer, bytesIn);
-    }
-  }
 }
 
 void setup() {
