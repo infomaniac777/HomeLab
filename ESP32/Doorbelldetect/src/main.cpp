@@ -27,14 +27,15 @@ https://github.com/gilmaimon/ArduinoWebsockets
 #define I2S_SCK 19
 #define I2S_PORT I2S_NUM_0
 
-#define bufferCnt 10
-#define bufferLen 1024
+// Reduce buffer count and length for lower latency
+#define bufferCnt 5      // Reduced from 10
+#define bufferLen 512    // Reduced from 1024
 int16_t sBuffer[bufferLen];
 
 const char* ssid = "YOUR_WIFI_SSID";
 const char* password = "YOUR_WIFI_PASSWORD";
 
-const char* websocket_server_host = "192.168.0.9";
+const char* websocket_server_host = "192.168.0.7";
 const uint16_t websocket_server_port = 3003;  // <WEBSOCKET_SERVER_PORT>
 
 using namespace websockets;
@@ -57,12 +58,12 @@ void i2s_install() {
   // Set up I2S Processor configuration
   const i2s_config_t i2s_config = {
     .mode = i2s_mode_t(I2S_MODE_MASTER | I2S_MODE_RX),
-    .sample_rate = 44100,
-    //.sample_rate = 16000,
+    //.sample_rate = 44100,
+    .sample_rate = 16000,
     .bits_per_sample = i2s_bits_per_sample_t(16),
     .channel_format = I2S_CHANNEL_FMT_ONLY_LEFT,
     .communication_format = i2s_comm_format_t(I2S_COMM_FORMAT_STAND_I2S),
-    .intr_alloc_flags = 0,
+    .intr_alloc_flags = ESP_INTR_FLAG_LEVEL1, // Higher priority
     .dma_buf_count = bufferCnt,
     .dma_buf_len = bufferLen,
     .use_apll = false
