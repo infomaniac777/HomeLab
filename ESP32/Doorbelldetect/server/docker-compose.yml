@@ -1,0 +1,12 @@
+services:
+  audio_server:
+    container_name: doorbell-detector
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    image: doorbell-detector:1.2.2
+    ports:
+      - "3003:3003"
+    environment:
+      - TZ=Asia/Kolkata
+    restart: unless-stopped
