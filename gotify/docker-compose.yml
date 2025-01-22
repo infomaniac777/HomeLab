@@ -3,7 +3,7 @@ services:
     image: gotify/server
     container_name: gotify_server
     ports:
-      - 3003:80  # Change the external port to 3003
+      - 3004:80
     environment:
       GOTIFY_DEFAULTUSER_PASS: 'admin'
       TZ: 'Asia/Kolkata'  # Set the timezone for India
