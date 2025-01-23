@@ -1,5 +1,6 @@
-import asyncio
-import websockets
+import threading
+import queue
+from websocket_server import WebsocketServer
 import wave
 from datetime import datetime
 import numpy as np
@@ -27,10 +28,10 @@ WS_PORT = 3003
 SAMPLE_RATE = 16000
 CHANNELS = 1
 SAMPLE_WIDTH = 2
-BUFFER_DURATION = 6  # seconds
+BUFFER_DURATION = 3  # seconds
 BUFFER_SIZE_CLASSIFY = SAMPLE_RATE * SAMPLE_WIDTH *  CHANNELS * BUFFER_DURATION
 RECORD_AUDIO = False
-CONFIDENCE_THRESHOLD = 0.7
+CONFIDENCE_THRESHOLD = 0.8
 
 # Add these variables after existing configuration
 PACKET_STATS_INTERVAL = 60  # Print stats every second
@@ -102,82 +103,103 @@ def create_wav_header(sample_rate=16000, channels=1, sample_width=2):
     
     return header
 
-async def audio_server(websocket):
-    global last_check, total_disconnected
-    global packet_count, bytes_received, last_stats_time
-    
-    # Initialize buffer
-    audio_buffer = io.BytesIO()
-    audio_buffer.write(create_wav_header(SAMPLE_RATE, CHANNELS, SAMPLE_WIDTH))
-    data_size = 0
-    
-    try:
-        async for message in websocket:
-            # Update packet statistics
-            packet_count += 1
-            bytes_received += len(message)
+class AudioProcessor:
+    def __init__(self):
+        self.audio_queue = queue.Queue(maxsize=100)
+        self.packet_stats = {'count': 0, 'bytes': 0, 'last_check': datetime.now()}
+        self.server = WebsocketServer(port=WS_PORT, host='0.0.0.0')
+        
+    def new_client(self, client, server):
+        logger.info(f"New client connected. ID: {client['id']}")
+        
+    def client_left(self, client, server):
+        logger.info(f"Client disconnected. ID: {client['id']}")
+        
+    def message_received(self, client, server, message):
+        try:
+            # Handle raw binary data directly
+            if isinstance(message, bytes):
+                binary_data = message
+            else:
+                # For backwards compatibility
+                binary_data = bytes(message, encoding='latin1')
             
-            # Write audio data and track size
-            data_size += len(message)
-            audio_buffer.write(message)
+            self.update_stats(len(binary_data))
+            self.audio_queue.put(binary_data)
+        except Exception as e:
+            logger.error(f"Message processing error: {e}")
+        
+    def update_stats(self, message_size):
+        now = datetime.now()
+        self.packet_stats['count'] += 1
+        self.packet_stats['bytes'] += message_size
+        
+        if (now - self.packet_stats['last_check']).total_seconds() >= PACKET_STATS_INTERVAL:
+            elapsed = (now - self.packet_stats['last_check']).total_seconds()
+            pps = self.packet_stats['count'] / elapsed
+            bps = self.packet_stats['bytes'] / elapsed
+            logger.info(f"Packet Rate: {pps:.2f} p/s, Data Rate: {(bps * 8)/1024:.2f} Kbps")
             
-            # Print statistics every PACKET_STATS_INTERVAL seconds
-            now = datetime.now()
-            if (now - last_stats_time).total_seconds() >= PACKET_STATS_INTERVAL:
-                elapsed = (now - last_stats_time).total_seconds()
-                pps = packet_count / elapsed
-                bps = bytes_received / elapsed
-                logger.info(f"Packet Rate: {pps:.2f} p/s, Data Rate: {(bps * 8)/1024:.2f} Kbps")
-                packet_count = 0
-                bytes_received = 0
-                last_stats_time = now
-
-            if data_size >= BUFFER_SIZE_CLASSIFY:
-                # Update WAV header
-                audio_buffer.seek(RIFF_SIZE_OFFSET)
-                audio_buffer.write(struct.pack('<I', data_size + 36))
-                audio_buffer.seek(DATA_SIZE_OFFSET)
-                audio_buffer.write(struct.pack('<I', data_size))
+            self.packet_stats['count'] = 0
+            self.packet_stats['bytes'] = 0
+            self.packet_stats['last_check'] = now
+            
+    def classifier_thread(self):
+        audio_buffer = io.BytesIO()
+        audio_buffer.write(create_wav_header(SAMPLE_RATE, CHANNELS, SAMPLE_WIDTH))
+        data_size = 0
+        
+        while True:
+            try:
+                message = self.audio_queue.get()
+                # Ensure message is bytes
+                if not isinstance(message, bytes):
+                    logger.error(f"Invalid message type: {type(message)}")
+                    continue
+                    
+                data_size += len(message)
+                audio_buffer.write(message)
                 
-                # Classify directly
-                audio_buffer.seek(0)
-                class_name, confidence = classify_wav(audio_buffer)
-                logger.info(f"Predicted: {class_name} ({confidence:.2%})")
-                if class_name == 'Music' and confidence > CONFIDENCE_THRESHOLD:
-                    send_detection(class_name, confidence)
-                
-                # Reset buffer
-                audio_buffer = io.BytesIO()
-                audio_buffer.write(create_wav_header(SAMPLE_RATE, CHANNELS, SAMPLE_WIDTH))
-                data_size = 0
-                
-    except websockets.exceptions.ConnectionClosed:
-        total_disconnected += 1
-        logger.warning(f"Client disconnected, total: {total_disconnected}")
+                if data_size >= BUFFER_SIZE_CLASSIFY:
+                    # Update WAV header
+                    audio_buffer.seek(RIFF_SIZE_OFFSET)
+                    audio_buffer.write(struct.pack('<I', data_size + 36))
+                    audio_buffer.seek(DATA_SIZE_OFFSET)
+                    audio_buffer.write(struct.pack('<I', data_size))
+                    
+                    # Classify
+                    audio_buffer.seek(0)
+                    class_name, confidence = classify_wav(audio_buffer)
+                    logger.info(f"Predicted class: {class_name} (confidence: {confidence:.2%})")
+                    if class_name and confidence > CONFIDENCE_THRESHOLD:
+                        if class_name == 'Music':
+                            send_detection(class_name, confidence)
+                    
+                    # Reset buffer
+                    audio_buffer = io.BytesIO()
+                    audio_buffer.write(create_wav_header(SAMPLE_RATE, CHANNELS, SAMPLE_WIDTH))
+                    data_size = 0
+                    
+            except Exception as e:
+                logger.error(f"Classification error: {e}")
 
-def init_wav_file():
-    global output_file
-    output_file = wave.open("audio_recording.wav", "wb")
-    output_file.setnchannels(CHANNELS)
-    output_file.setsampwidth(SAMPLE_WIDTH)
-    output_file.setframerate(SAMPLE_RATE)
-
-async def main():
-    global template_spectrum
-    if RECORD_AUDIO:
-        init_wav_file()
-    # template_spectrum = load_template_spectrum()
-    async with websockets.serve(audio_server, "0.0.0.0", WS_PORT):
-        logger.info(f"WebSocket server listening on port {WS_PORT}")
-        await asyncio.Future()  # run forever
+def main():
+    processor = AudioProcessor()
+    
+    # Start classifier thread
+    classifier = threading.Thread(
+        target=processor.classifier_thread,
+        daemon=True
+    )
+    classifier.start()
+    
+    # Setup WebSocket server
+    processor.server.set_fn_new_client(processor.new_client)
+    processor.server.set_fn_client_left(processor.client_left)
+    processor.server.set_fn_message_received(processor.message_received)
+    
+    logger.info(f"WebSocket server starting on port {WS_PORT}")
+    processor.server.run_forever()
 
 if __name__ == "__main__":
-    logger.info("Starting main ...")
-    packets_received = 0
-    last_check = datetime.now()
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        print("\nSaving and closing...")
-        if RECORD_AUDIO and output_file:
-            output_file.close()
+    main()
