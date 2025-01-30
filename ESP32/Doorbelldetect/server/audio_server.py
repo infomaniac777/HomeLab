@@ -108,6 +108,9 @@ class AudioProcessor:
         self.audio_queue = queue.Queue(maxsize=100)
         self.packet_stats = {'count': 0, 'bytes': 0, 'last_check': datetime.now()}
         self.server = WebsocketServer(port=WS_PORT, host='0.0.0.0')
+        self.sliding_buffer = np.zeros(BUFFER_SIZE_CLASSIFY * 2, dtype=np.int16)  # 2x size for overlap
+        self.buffer_position = 0
+        self.overlap = BUFFER_SIZE_CLASSIFY // 2  # 50% overlap
         
     def new_client(self, client, server):
         logger.info(f"New client connected. ID: {client['id']}")
@@ -145,40 +148,50 @@ class AudioProcessor:
             self.packet_stats['last_check'] = now
             
     def classifier_thread(self):
-        audio_buffer = io.BytesIO()
-        audio_buffer.write(create_wav_header(SAMPLE_RATE, CHANNELS, SAMPLE_WIDTH))
-        data_size = 0
-        
         while True:
             try:
                 message = self.audio_queue.get()
-                # Ensure message is bytes
                 if not isinstance(message, bytes):
                     logger.error(f"Invalid message type: {type(message)}")
                     continue
-                    
-                data_size += len(message)
-                audio_buffer.write(message)
                 
-                if data_size >= BUFFER_SIZE_CLASSIFY:
+                # Convert bytes to numpy array
+                audio_chunk = np.frombuffer(message, dtype=np.int16)
+                chunk_size = len(audio_chunk)
+                
+                # Add to sliding buffer
+                if self.buffer_position + chunk_size > len(self.sliding_buffer):
+                    # Buffer wrap-around
+                    self.sliding_buffer = np.roll(self.sliding_buffer, -chunk_size)
+                    self.sliding_buffer[-chunk_size:] = audio_chunk
+                else:
+                    self.sliding_buffer[self.buffer_position:self.buffer_position + chunk_size] = audio_chunk
+                    self.buffer_position += chunk_size
+                
+                # Process when we have enough data
+                if self.buffer_position >= BUFFER_SIZE_CLASSIFY:
+                    # Create WAV buffer for classification
+                    wav_buffer = io.BytesIO()
+                    wav_buffer.write(create_wav_header(SAMPLE_RATE, CHANNELS, SAMPLE_WIDTH))
+                    wav_buffer.write(self.sliding_buffer[:BUFFER_SIZE_CLASSIFY].tobytes())
+                    
                     # Update WAV header
-                    audio_buffer.seek(RIFF_SIZE_OFFSET)
-                    audio_buffer.write(struct.pack('<I', data_size + 36))
-                    audio_buffer.seek(DATA_SIZE_OFFSET)
-                    audio_buffer.write(struct.pack('<I', data_size))
+                    wav_buffer.seek(RIFF_SIZE_OFFSET)
+                    wav_buffer.write(struct.pack('<I', BUFFER_SIZE_CLASSIFY + 36))
+                    wav_buffer.seek(DATA_SIZE_OFFSET)
+                    wav_buffer.write(struct.pack('<I', BUFFER_SIZE_CLASSIFY))
                     
                     # Classify
-                    audio_buffer.seek(0)
-                    class_name, confidence = classify_wav(audio_buffer)
+                    wav_buffer.seek(0)
+                    class_name, confidence = classify_wav(wav_buffer)
                     logger.info(f"Predicted class: {class_name} (confidence: {confidence:.2%})")
                     if class_name and confidence > CONFIDENCE_THRESHOLD:
                         if class_name == 'Music':
                             send_detection(class_name, confidence)
                     
-                    # Reset buffer
-                    audio_buffer = io.BytesIO()
-                    audio_buffer.write(create_wav_header(SAMPLE_RATE, CHANNELS, SAMPLE_WIDTH))
-                    data_size = 0
+                    # Slide window by overlap amount
+                    self.sliding_buffer = np.roll(self.sliding_buffer, -self.overlap)
+                    self.buffer_position -= self.overlap
                     
             except Exception as e:
                 logger.error(f"Classification error: {e}")
