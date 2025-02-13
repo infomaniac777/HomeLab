@@ -6,7 +6,7 @@ services:
     network_mode: "host"
     environment:
       TZ: 'Asia/Kolkata'
-      WEBPASSWORD: 'admin'
+      WEBPASSWORD: ''
       DNS1: '8.8.8.8'
       DNS2: '8.8.4.4'
       WEB_PORT: '8100'
