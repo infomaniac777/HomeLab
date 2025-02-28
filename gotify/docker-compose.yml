@@ -9,6 +9,7 @@ services:
       TZ: 'Asia/Kolkata'  # Set the timezone for India
     volumes:
       - data:/app/data  # Use a Docker volume named 'data'
+    restart: unless-stopped
 
 volumes:
   data:  # Define the Docker volume
