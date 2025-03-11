@@ -9,4 +9,5 @@ services:
       - "3003:3003"
     environment:
       - TZ=Asia/Kolkata
+      - CUDA_VISIBLE_DEVICES=-1  
     restart: unless-stopped
