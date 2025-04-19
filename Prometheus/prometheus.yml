@@ -13,3 +13,7 @@ scrape_configs:
   - job_name: 'process-exporter'
     static_configs:
       - targets: ['192.168.0.7:9256']
+
+  - job_name: 'doorbell-detector'
+    static_configs:
+      - targets: ['192.168.0.7:10001']  

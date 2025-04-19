@@ -4,9 +4,10 @@ services:
     build: 
       context: .
       dockerfile: Dockerfile
-    image: doorbell-detector:2.2.0
+    image: doorbell-detector:2.3.0
     ports:
       - "3003:3003"
+      - "10001:8000"
     environment:
       - TZ=Asia/Kolkata
       - CUDA_VISIBLE_DEVICES=-1  

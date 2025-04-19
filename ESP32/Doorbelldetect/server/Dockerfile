@@ -10,4 +10,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY audio_server.py .
 COPY audio_AI.py .
 
+# WebSocket server port
+EXPOSE 3003 
+# Prometheus metrics port
+EXPOSE 8000 
+
 CMD ["python", "audio_server.py"]

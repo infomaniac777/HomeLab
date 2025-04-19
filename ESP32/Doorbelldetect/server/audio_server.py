@@ -10,6 +10,7 @@ import struct
 import requests
 import logging
 import os
+from prometheus_client import start_http_server, Counter, Gauge  # Add Gauge import
 
 # Configure single logger instance
 logger = logging.getLogger('doorbell_detector')
@@ -46,6 +47,12 @@ audio_buffer = io.BytesIO()
 RIFF_SIZE_OFFSET = 4
 DATA_SIZE_OFFSET = 40
 
+# Prometheus Metrics
+DETECTION_REQUESTS_SENT = Counter('detection_requests_sent_total', 'Total number of detection requests sent')
+PACKET_RATE = Gauge('audio_packet_rate_pps', 'Incoming audio packet rate in packets per second')
+DATA_RATE_KBPS = Gauge('audio_data_rate_kbps', 'Incoming audio data rate in kilobits per second')
+PROMETHEUS_PORT = 8000  # Port for Prometheus metrics endpoint
+
 # State variables
 packets_received = 0
 last_check = datetime.now()
@@ -77,6 +84,8 @@ def send_detection(class_name, confidence):
         )
         response.raise_for_status()
         logger.info(f"Detection sent: {response.status_code}")
+        # Increment Prometheus counter (no label)
+        DETECTION_REQUESTS_SENT.inc()
     except requests.exceptions.RequestException as e:
         logger.error(f"Failed to send detection: {e}")
 
@@ -141,7 +150,12 @@ class AudioProcessor:
             elapsed = (now - self.packet_stats['last_check']).total_seconds()
             pps = self.packet_stats['count'] / elapsed
             bps = self.packet_stats['bytes'] / elapsed
-            logger.info(f"Packet Rate: {pps:.2f} p/s, Data Rate: {(bps * 8)/1024:.2f} Kbps")
+            kbps = (bps * 8) / 1024
+            logger.info(f"Packet Rate: {pps:.2f} p/s, Data Rate: {kbps:.2f} Kbps")
+            
+            # Set Prometheus Gauges
+            PACKET_RATE.set(pps)
+            DATA_RATE_KBPS.set(kbps)
             
             self.packet_stats['count'] = 0
             self.packet_stats['bytes'] = 0
@@ -198,7 +212,15 @@ class AudioProcessor:
 
 def main():
     processor = AudioProcessor()
-    
+
+    # Start Prometheus metrics server
+    try:
+        start_http_server(PROMETHEUS_PORT)
+        logger.info(f"Prometheus metrics server started on port {PROMETHEUS_PORT}")
+    except OSError as e:
+        logger.error(f"Failed to start Prometheus server on port {PROMETHEUS_PORT}: {e}. Port might be in use.")
+        return  # Exit if Prometheus server fails to start
+
     # Start classifier thread
     classifier = threading.Thread(
         target=processor.classifier_thread,
