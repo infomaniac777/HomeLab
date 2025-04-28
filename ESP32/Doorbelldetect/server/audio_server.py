@@ -10,7 +10,7 @@ import struct
 import requests
 import logging
 import os
-from prometheus_client import start_http_server, Counter, Gauge  # Add Gauge import
+from prometheus_client import start_http_server, Counter, Gauge, Histogram 
 
 # Configure single logger instance
 logger = logging.getLogger('doorbell_detector')
@@ -32,7 +32,7 @@ SAMPLE_WIDTH = 2
 BUFFER_DURATION = 3  # seconds
 BUFFER_SIZE_CLASSIFY = SAMPLE_RATE * SAMPLE_WIDTH *  CHANNELS * BUFFER_DURATION
 RECORD_AUDIO = False
-CONFIDENCE_THRESHOLD = 0.8
+CONFIDENCE_THRESHOLD = 0.7
 
 # Add these variables after existing configuration
 PACKET_STATS_INTERVAL = 60  # Print stats every second
@@ -52,6 +52,13 @@ DETECTION_REQUESTS_SENT = Counter('detection_requests_sent_total', 'Total number
 PACKET_RATE = Gauge('audio_packet_rate_pps', 'Incoming audio packet rate in packets per second')
 DATA_RATE_KBPS = Gauge('audio_data_rate_kbps', 'Incoming audio data rate in kilobits per second')
 PROMETHEUS_PORT = 8000  # Port for Prometheus metrics endpoint
+CONNECTED_CLIENTS = Gauge('websocket_connected_clients', 'Number of currently connected WebSocket clients')
+# Replace Gauge with Histogram
+MUSIC_CONFIDENCE_HISTOGRAM = Histogram(
+    'music_detection_confidence_seconds', # Note: Histogram names often end in _seconds, _bytes, or _bucket by convention, but we'll use it for confidence here.
+    'Histogram of confidence scores for Music class detection',
+    buckets=[0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.0] # Buckets with 0.05 intervals
+)
 
 # State variables
 packets_received = 0
@@ -120,13 +127,22 @@ class AudioProcessor:
         self.sliding_buffer = np.zeros(BUFFER_SIZE_CLASSIFY * 2, dtype=np.int16)  # 2x size for overlap
         self.buffer_position = 0
         self.overlap = BUFFER_SIZE_CLASSIFY // 2  # 50% overlap
-        
+        self.connected_clients_count = 0  # Initialize client counter
+        CONNECTED_CLIENTS.set(0)  # Initialize Prometheus gauge
+
     def new_client(self, client, server):
         logger.info(f"New client connected. ID: {client['id']}")
-        
+        self.connected_clients_count += 1
+        CONNECTED_CLIENTS.set(self.connected_clients_count)  # Update Prometheus gauge
+
     def client_left(self, client, server):
         logger.info(f"Client disconnected. ID: {client['id']}")
-        
+        self.connected_clients_count -= 1
+        # Ensure count doesn't go below zero in case of unexpected events
+        if self.connected_clients_count < 0:
+            self.connected_clients_count = 0
+        CONNECTED_CLIENTS.set(self.connected_clients_count)  # Update Prometheus gauge
+
     def message_received(self, client, server, message):
         try:
             # Handle raw binary data directly
@@ -199,10 +215,19 @@ class AudioProcessor:
                     wav_buffer.seek(0)
                     class_name, confidence = classify_wav(wav_buffer)
                     logger.info(f"Predicted class: {class_name} (confidence: {confidence:.2%})")
+
+                    # Observe Music confidence metric regardless of threshold
+                    if class_name == 'Music':
+                        MUSIC_CONFIDENCE_HISTOGRAM.observe(confidence) # Use observe() instead of set()
+
+                    # Send notification only if above threshold
                     if class_name and confidence > CONFIDENCE_THRESHOLD:
-                        if class_name == 'Music':
-                            send_detection(class_name, confidence)
-                    
+                        # No need to check for Music class again here if only sending Music notifications
+                        # If sending other notifications, keep the check
+                        # Assuming only Music notifications based on previous context:
+                        if class_name == 'Music': # Keep if other classes might also trigger notifications
+                             send_detection(class_name, confidence)
+
                     # Slide window by overlap amount
                     self.sliding_buffer = np.roll(self.sliding_buffer, -self.overlap)
                     self.buffer_position -= self.overlap
