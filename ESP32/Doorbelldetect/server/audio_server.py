@@ -1,3 +1,4 @@
+import argparse
 import threading
 import queue
 from websocket_server import WebsocketServer
@@ -11,6 +12,7 @@ import requests
 import logging
 import os
 from prometheus_client import start_http_server, Counter, Gauge, Histogram 
+import time  # Import time module
 
 # Configure single logger instance
 logger = logging.getLogger('doorbell_detector')
@@ -32,7 +34,7 @@ SAMPLE_WIDTH = 2
 BUFFER_DURATION = 3  # seconds
 BUFFER_SIZE_CLASSIFY = SAMPLE_RATE * SAMPLE_WIDTH *  CHANNELS * BUFFER_DURATION
 RECORD_AUDIO = False
-CONFIDENCE_THRESHOLD = 0.7
+MUSIC_CLASS_NAME = 'Music'
 
 # Add these variables after existing configuration
 PACKET_STATS_INTERVAL = 60  # Print stats every second
@@ -51,22 +53,15 @@ DATA_SIZE_OFFSET = 40
 DETECTION_REQUESTS_SENT = Counter('detection_requests_sent_total', 'Total number of detection requests sent')
 PACKET_RATE = Gauge('audio_packet_rate_pps', 'Incoming audio packet rate in packets per second')
 DATA_RATE_KBPS = Gauge('audio_data_rate_kbps', 'Incoming audio data rate in kilobits per second')
-PROMETHEUS_PORT = 8000  # Port for Prometheus metrics endpoint
 CONNECTED_CLIENTS = Gauge('websocket_connected_clients', 'Number of currently connected WebSocket clients')
-# Replace Gauge with Histogram
-MUSIC_CONFIDENCE_HISTOGRAM = Histogram(
-    'music_detection_confidence_seconds', # Note: Histogram names often end in _seconds, _bytes, or _bucket by convention, but we'll use it for confidence here.
-    'Histogram of confidence scores for Music class detection',
-    buckets=[0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.0] # Buckets with 0.05 intervals
-)
+
+PROMETHEUS_PORT = 8000  # Port for Prometheus metrics endpoint
 
 # State variables
 packets_received = 0
 last_check = datetime.now()
 output_file = None
 total_disconnected = 0
-
-logger.info("Initial configuration complete.")
 
 # Add new globals
 
@@ -120,7 +115,7 @@ def create_wav_header(sample_rate=16000, channels=1, sample_width=2):
     return header
 
 class AudioProcessor:
-    def __init__(self):
+    def __init__(self, confidence_threshold): # Add confidence_threshold parameter
         self.audio_queue = queue.Queue(maxsize=100)
         self.packet_stats = {'count': 0, 'bytes': 0, 'last_check': datetime.now()}
         self.server = WebsocketServer(port=WS_PORT, host='0.0.0.0')
@@ -129,6 +124,8 @@ class AudioProcessor:
         self.overlap = BUFFER_SIZE_CLASSIFY // 2  # 50% overlap
         self.connected_clients_count = 0  # Initialize client counter
         CONNECTED_CLIENTS.set(0)  # Initialize Prometheus gauge
+        self.confidence_threshold = confidence_threshold # Store threshold
+        self.last_detection_time = None  # Add timestamp for last detection
 
     def new_client(self, client, server):
         logger.info(f"New client connected. ID: {client['id']}")
@@ -214,19 +211,18 @@ class AudioProcessor:
                     # Classify
                     wav_buffer.seek(0)
                     class_name, confidence = classify_wav(wav_buffer)
-                    logger.info(f"Predicted class: {class_name} (confidence: {confidence:.2%})")
+                    logger.debug(f"Predicted class: {class_name} (confidence: {confidence:.2%})")
 
-                    # Observe Music confidence metric regardless of threshold
-                    if class_name == 'Music':
-                        MUSIC_CONFIDENCE_HISTOGRAM.observe(confidence) # Use observe() instead of set()
-
-                    # Send notification only if above threshold
-                    if class_name and confidence > CONFIDENCE_THRESHOLD:
-                        # No need to check for Music class again here if only sending Music notifications
-                        # If sending other notifications, keep the check
-                        # Assuming only Music notifications based on previous context:
-                        if class_name == 'Music': # Keep if other classes might also trigger notifications
-                             send_detection(class_name, confidence)
+                    # Send notification only if above threshold and cooldown period passed
+                    if class_name  == MUSIC_CLASS_NAME and confidence > self.confidence_threshold:  # Use instance variable
+                        logger.info(f"Detected {MUSIC_CLASS_NAME} with confidence {confidence:.2%}")
+                        now = datetime.now()
+                        if self.last_detection_time is None or \
+                           (now - self.last_detection_time).total_seconds() > BUFFER_DURATION:
+                            send_detection(class_name, confidence)
+                            self.last_detection_time = now  # Update last detection time
+                        else:
+                            logger.info(f"Detection of {MUSIC_CLASS_NAME} suppressed due to cooldown.")
 
                     # Slide window by overlap amount
                     self.sliding_buffer = np.roll(self.sliding_buffer, -self.overlap)
@@ -236,7 +232,36 @@ class AudioProcessor:
                 logger.error(f"Classification error: {e}")
 
 def main():
-    processor = AudioProcessor()
+    # --- Argument Parsing ---
+    parser = argparse.ArgumentParser(description="Audio detection server with WebSocket.")
+    parser.add_argument(
+        '--confidence-threshold',
+        type=float,
+        default=0.8,
+        help='Minimum confidence threshold for triggering a notification (default: 0.8)'
+    )
+    args = parser.parse_args()
+    # --- End Argument Parsing ---
+
+    # --- Log Initial Parameters ---
+    logger.info("--- Server Configuration ---")
+    logger.info(f"WebSocket Port (WS_PORT): {WS_PORT}")
+    logger.info(f"Sample Rate (SAMPLE_RATE): {SAMPLE_RATE}")
+    logger.info(f"Channels (CHANNELS): {CHANNELS}")
+    logger.info(f"Sample Width (SAMPLE_WIDTH): {SAMPLE_WIDTH}")
+    logger.info(f"Buffer Duration (BUFFER_DURATION): {BUFFER_DURATION} seconds")
+    logger.info(f"Classify Buffer Size (BUFFER_SIZE_CLASSIFY): {BUFFER_SIZE_CLASSIFY} bytes")
+    logger.info(f"Record Audio (RECORD_AUDIO): {RECORD_AUDIO}")
+    logger.info(f"Packet Stats Interval (PACKET_STATS_INTERVAL): {PACKET_STATS_INTERVAL} seconds")
+    logger.info(f"API Endpoint (API_ENDPOINT): {API_ENDPOINT}")
+    logger.info(f"API Timeout (API_TIMEOUT): {API_TIMEOUT} seconds")
+    logger.info(f"Confidence Threshold: {args.confidence_threshold}")
+    logger.info("--------------------------")
+    # --- End Log Initial Parameters ---
+
+    logger.info(f"Using confidence threshold: {args.confidence_threshold}") # Log the threshold
+
+    processor = AudioProcessor(confidence_threshold=args.confidence_threshold) # Pass threshold to processor
 
     # Start Prometheus metrics server
     try:

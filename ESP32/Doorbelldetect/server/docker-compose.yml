@@ -4,7 +4,7 @@ services:
     build: 
       context: .
       dockerfile: Dockerfile
-    image: doorbell-detector:2.5.0
+    image: doorbell-detector:2.7.0
     ports:
       - "3003:3003"
       - "10001:8000"
