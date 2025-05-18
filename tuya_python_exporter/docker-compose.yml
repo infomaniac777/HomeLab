@@ -9,5 +9,7 @@ services:
       - EXPORTER_PORT=9876
       - SCRAPE_INTERVAL=15
       - LOG_LEVEL=INFO
+      - TUYA_DEVICES_CONFIG_PATH=/app/devices.json
     volumes:
       - /etc/localtime:/etc/localtime:ro
+      - ./devices.json:/app/devices.json:ro

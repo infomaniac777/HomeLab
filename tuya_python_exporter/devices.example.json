@@ -1,0 +1,16 @@
+[
+  {
+    "name": "My First Plug",
+    "id": "your_device_id_1",
+    "key": "your_local_key_1",
+    "ip": "192.168.1.100",
+    "version": 3.3
+  },
+  {
+    "name": "Another Smart Device",
+    "id": "your_device_id_2",
+    "key": "your_local_key_2",
+    "ip": "192.168.1.101",
+    "version": 3.3
+  }
+]

@@ -3,6 +3,7 @@ import time
 import os
 import socket
 import logging
+import json  # Added
 from prometheus_client import start_http_server, Gauge
 
 # Configure logging
@@ -148,32 +149,36 @@ def update_metrics_persistent(device_id_to_update): # Renamed to avoid conflict 
 if __name__ == '__main__':
     exporter_port = int(os.getenv('EXPORTER_PORT', 9876))
     scrape_interval = int(os.getenv('SCRAPE_INTERVAL', 15))
+    devices_config_path = os.getenv('TUYA_DEVICES_CONFIG_PATH', 'devices.json')
 
-    DEVICES_CONFIG_LIST = [ # Renamed to avoid confusion with a global DEVICES_CONFIG if it existed
-        {
-            'name': "TV Area Plug",
-            'id': "ebf2f398e4c3dafa04n0pv",
-            'key': "ni?lu7e_we/beABm",
-            'ip': "192.168.0.173",
-            'version': 3.3
-        },
-        {
-            'name': "AC Plug",
-            'id': "eb60afa59511699cf8bvxi",
-            'key': "`Dyl~#[+`JO_'o9h",
-            'ip': "192.168.0.172",
-            'version': 3.3
-        },
-    ]
+    DEVICES_CONFIG_LIST = []
+    try:
+        with open(devices_config_path, 'r') as f:
+            DEVICES_CONFIG_LIST = json.load(f)
+        if not isinstance(DEVICES_CONFIG_LIST, list):
+            logger.error(f"Error: Content of {devices_config_path} is not a JSON list.")
+            DEVICES_CONFIG_LIST = [] # Reset to empty list
+    except FileNotFoundError:
+        logger.error(f"Error: Devices configuration file not found at {devices_config_path}. Please create it or set TUYA_DEVICES_CONFIG_PATH.")
+    except json.JSONDecodeError as e:
+        logger.error(f"Error decoding JSON from {devices_config_path}: {e}")
+    except Exception as e:
+        logger.error(f"An unexpected error occurred while loading {devices_config_path}: {e}")
 
-    # Populate device_objects and device_configs_map using (potentially updated) DEVICES_CONFIG_LIST
-    for dev_conf in DEVICES_CONFIG_LIST:
-        device_objects[dev_conf['id']] = None 
-        device_configs_map[dev_conf['id']] = dev_conf
+    # Populate device_objects and device_configs_map
+    if DEVICES_CONFIG_LIST:
+        for dev_conf in DEVICES_CONFIG_LIST:
+            if all(k in dev_conf for k in ('id', 'name', 'ip', 'key', 'version')):
+                device_objects[dev_conf['id']] = None
+                device_configs_map[dev_conf['id']] = dev_conf
+            else:
+                logger.warning(f"Skipping device due to missing keys in configuration: {dev_conf.get('name', 'Unnamed Device')}")
 
-    logger.info(f"Found {len(DEVICES_CONFIG_LIST)} Tuya devices to monitor:")
-    for dev_info in DEVICES_CONFIG_LIST:
-        logger.info(f"  ID: {dev_info['id']}, Name: {dev_info['name']}, IP: {dev_info['ip']}, Key: {'*' * len(dev_info['key'])}, Version: {dev_info['version']}")
+        logger.info(f"Successfully loaded {len(device_configs_map)} Tuya devices to monitor from {devices_config_path}:")
+        for dev_id, dev_info in device_configs_map.items():
+            logger.info(f"  ID: {dev_info['id']}, Name: {dev_info['name']}, IP: {dev_info['ip']}, Key: {'*' * len(dev_info['key'])}, Version: {dev_info['version']}")
+    else:
+        logger.info(f"No devices loaded from {devices_config_path}. The exporter will run but monitor no devices.")
 
     start_http_server(exporter_port)
     logger.info(f"Prometheus exporter started on port {exporter_port}")
