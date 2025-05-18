@@ -1,0 +1,13 @@
+services:
+  tuya-python-exporter:
+    build: .
+    container_name: tuya-python-exporter
+    restart: unless-stopped
+    ports:
+      - "9876:9876"
+    environment:
+      - EXPORTER_PORT=9876
+      - SCRAPE_INTERVAL=15
+      - LOG_LEVEL=INFO
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
