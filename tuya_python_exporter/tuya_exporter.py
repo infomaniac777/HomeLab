@@ -78,28 +78,28 @@ def update_metrics_persistent(device_id_to_update): # Renamed to avoid conflict 
             dps = status['dps']
             voltage, current, power = None, None, None
 
-            if '20' in dps and '18' in dps and '19' in dps:
+            # Try to get voltage from DPS '20'
+            if '20' in dps:
                 voltage = dps['20'] / 10.0
-                current = dps['18'] / 1000.0
-                power = dps['19'] / 10.0
-            elif '6' in dps and '4' in dps and '5' in dps:
-                voltage = dps['6'] / 10.0
-                current = dps['4'] / 1000.0
-                power = dps['5'] / 10.0
-            elif '4' in dps and '3' in dps and '2' in dps:
-                voltage = dps['4'] / 10.0
-                current = dps['3'] / 1000.0
-                power = dps['2']
-            elif 'voltage' in dps and 'current' in dps and 'power' in dps:
-                voltage = dps['voltage']
-                current = dps['current']
-                power = dps['power']
             else:
-                logger.warning(f"Could not find expected DPS keys for {device_name}. DPS: {dps}")
+                logger.warning(f"DPS key '20' (voltage) not found for {device_name}. Available DPS: {dps}")
                 tuya_exporter_issues_total.labels(device_name=device_name, level="warning").inc()
-                set_gauges_to_nan(device_id_to_update, device_name)
-                # No return here, will proceed to set NaN for any values not found
+            
+            # Try to get current from DPS '18'
+            if '18' in dps:
+                current = dps['18'] / 1000.0
+            else:
+                logger.warning(f"DPS key '18' (current) not found for {device_name}. Available DPS: {dps}")
+                tuya_exporter_issues_total.labels(device_name=device_name, level="warning").inc()
+            
+            # Try to get power from DPS '19'
+            if '19' in dps:
+                power = dps['19'] / 10.0
+            else:
+                logger.warning(f"DPS key '19' (power) not found for {device_name}. Available DPS: {dps}")
+                tuya_exporter_issues_total.labels(device_name=device_name, level="warning").inc()
 
+            # Set gauges based on parsed values (or NaN if parsing failed for a specific metric)
             if voltage is not None:
                 voltage_gauge.labels(device_id=device_id_to_update, device_name=device_name).set(voltage)
             else:
