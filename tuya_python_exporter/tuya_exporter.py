@@ -3,24 +3,25 @@ import time
 import os
 import socket
 import logging
-import json  # Added
-from prometheus_client import start_http_server, Gauge
+import json
+from prometheus_client import start_http_server, Gauge, Counter
 
 # Configure logging
 LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO').upper()
-logging.basicConfig(level=LOG_LEVEL, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=LOG_LEVEL, format='%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s')
 logger = logging.getLogger(__name__)
 
 # Prometheus metrics
 voltage_gauge = Gauge('tuya_voltage_volts', 'Voltage measured by the Tuya device', ['device_id', 'device_name'])
 current_gauge = Gauge('tuya_current_amperes', 'Current measured by the Tuya device', ['device_id', 'device_name'])
 power_gauge = Gauge('tuya_power_watts', 'Power measured by the Tuya device', ['device_id', 'device_name'])
+tuya_exporter_issues_total = Counter('tuya_exporter_issues_total', 'Total number of issues encountered by the exporter', ['device_name', 'level'])
 
 # Global store for device configurations and tinytuya device objects
 device_objects = {}
 device_configs_map = {}
 
-# --- Helper function to set gauges to 0 ---
+# --- Helper function to set gauges to nan ---
 def set_gauges_to_nan(device_id, device_name): # Renamed function
     """Sets all Prometheus gauges to NaN for the given device."""
     logger.debug(f"Setting gauges to NaN for device_id: {device_id}, device_name: {device_name}")
@@ -38,6 +39,7 @@ def update_metrics_persistent(device_id_to_update): # Renamed to avoid conflict 
     device_config = device_configs_map.get(device_id_to_update)
     if not device_config:
         logger.error(f"No configuration found for device_id {device_id_to_update}")
+        tuya_exporter_issues_total.labels(device_name="unknown", level="error").inc()
         return
 
     device_name = device_config['name']
@@ -63,6 +65,7 @@ def update_metrics_persistent(device_id_to_update): # Renamed to avoid conflict 
             logger.info(f"Persistent connection ready for {device_name}.")
         except Exception as e:
             logger.error(f"Failed to initialize persistent connection for device {device_name} ({device_id_to_update}): {e}")
+            tuya_exporter_issues_total.labels(device_name=device_name, level="error").inc()
             device_objects[device_id_to_update] = None 
             set_gauges_to_nan(device_id_to_update, device_name)
             return
@@ -93,6 +96,7 @@ def update_metrics_persistent(device_id_to_update): # Renamed to avoid conflict 
                 power = dps['power']
             else:
                 logger.warning(f"Could not find expected DPS keys for {device_name}. DPS: {dps}")
+                tuya_exporter_issues_total.labels(device_name=device_name, level="warning").inc()
                 set_gauges_to_nan(device_id_to_update, device_name)
                 # No return here, will proceed to set NaN for any values not found
 
@@ -113,36 +117,43 @@ def update_metrics_persistent(device_id_to_update): # Renamed to avoid conflict 
 
         elif status and status.get('Error'):
             error_msg = status.get('Error')
-            payload = status.get('Payload') 
+            payload = status.get('Payload')
             logger.error(f"Device {device_name} ({device_id_to_update}) returned an error in status: {error_msg}. Payload: {payload}")
+            tuya_exporter_issues_total.labels(device_name=device_name, level="error").inc()
             if d:
                 try:
                     d.close()
                 except Exception as close_err:
                     logger.error(f"Error closing connection for {device_name} after device error: {close_err}")
+                    tuya_exporter_issues_total.labels(device_name=device_name, level="error").inc()
             device_objects[device_id_to_update] = None
             set_gauges_to_nan(device_id_to_update, device_name)
             return
         else:
             logger.warning(f"Failed to get valid status or DPS for device {device_name} ({device_id_to_update}). Status: {status}")
+            tuya_exporter_issues_total.labels(device_name=device_name, level="warning").inc()
             set_gauges_to_nan(device_id_to_update, device_name)
 
     except (ConnectionResetError, socket.timeout, tinytuya.DecodeError) as e:
         logger.warning(f"Network/Decode error for {device_name} ({device_id_to_update}): {e}. Attempting re-initialization on next cycle.")
+        tuya_exporter_issues_total.labels(device_name=device_name, level="warning").inc()
         if d:
             try:
                 d.close()
             except Exception as close_err:
                 logger.error(f"Error closing connection for {device_name} during {type(e).__name__}: {close_err}")
+                tuya_exporter_issues_total.labels(device_name=device_name, level="error").inc()
         device_objects[device_id_to_update] = None
         set_gauges_to_nan(device_id_to_update, device_name)
     except Exception as e:
         logger.error(f"Unexpected error processing device {device_name} ({device_id_to_update}): {e}", exc_info=True)
+        tuya_exporter_issues_total.labels(device_name=device_name, level="error").inc()
         if d:
             try:
                 d.close()
             except Exception as close_err:
                 logger.error(f"Error closing connection for {device_name} during generic Exception: {close_err}")
+                tuya_exporter_issues_total.labels(device_name=device_name, level="error").inc()
         device_objects[device_id_to_update] = None
         set_gauges_to_nan(device_id_to_update, device_name)
 
@@ -157,13 +168,17 @@ if __name__ == '__main__':
             DEVICES_CONFIG_LIST = json.load(f)
         if not isinstance(DEVICES_CONFIG_LIST, list):
             logger.error(f"Error: Content of {devices_config_path} is not a JSON list.")
+            tuya_exporter_issues_total.labels(device_name="config_loading", level="error").inc()
             DEVICES_CONFIG_LIST = [] # Reset to empty list
     except FileNotFoundError:
         logger.error(f"Error: Devices configuration file not found at {devices_config_path}. Please create it or set TUYA_DEVICES_CONFIG_PATH.")
+        tuya_exporter_issues_total.labels(device_name="config_loading", level="error").inc()
     except json.JSONDecodeError as e:
         logger.error(f"Error decoding JSON from {devices_config_path}: {e}")
+        tuya_exporter_issues_total.labels(device_name="config_loading", level="error").inc()
     except Exception as e:
         logger.error(f"An unexpected error occurred while loading {devices_config_path}: {e}")
+        tuya_exporter_issues_total.labels(device_name="config_loading", level="error").inc()
 
     # Populate device_objects and device_configs_map
     if DEVICES_CONFIG_LIST:
@@ -173,6 +188,7 @@ if __name__ == '__main__':
                 device_configs_map[dev_conf['id']] = dev_conf
             else:
                 logger.warning(f"Skipping device due to missing keys in configuration: {dev_conf.get('name', 'Unnamed Device')}")
+                tuya_exporter_issues_total.labels(device_name=dev_conf.get('name', 'unknown_name'), level="warning").inc()
 
         logger.info(f"Successfully loaded {len(device_configs_map)} Tuya devices to monitor from {devices_config_path}:")
         for dev_id, dev_info in device_configs_map.items():
