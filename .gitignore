@@ -8,3 +8,6 @@
 
 # Audio files
 *.wav
+
+# Tracing files
+FlameGraph/
