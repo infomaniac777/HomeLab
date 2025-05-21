@@ -1,0 +1,30 @@
+services:
+  traefik:
+    image: "traefik:v3.0" # Use the latest stable version
+    container_name: "traefik"
+    restart: unless-stopped
+    command:
+      - "--api.insecure=true" # For accessing the Traefik dashboard (remove in production or secure it)
+      - "--providers.docker=true" # To discover services running in Docker
+      - "--providers.docker.exposedbydefault=false" # Only expose containers that have explicit Traefik labels
+      - "--entrypoints.web.address=:80"
+      # Add more entrypoints if needed, e.g., for HTTPS
+      # - "--entrypoints.websecure.address=:443"
+      # - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
+      # - "--certificatesresolvers.myresolver.acme.email=your-email@example.com"
+      # - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80" # HTTP
+      # - "443:443" # HTTPS (if you enable it)
+      - "8080:8080" # Traefik Dashboard (if api.insecure=true)
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro" # So Traefik can listen to the Docker events
+      # - "./letsencrypt:/letsencrypt" # Volume to store Let's Encrypt certificates (if you enable HTTPS)
+      # - "./traefik.yml:/etc/traefik/traefik.yml:ro" # Optional: For static configuration
+      # - "./config/:/etc/traefik/config/:ro" # Optional: For dynamic configuration files
+    networks:
+      - traefik_proxy # Use a dedicated network
+
+networks:
+  traefik_proxy:
+    name: traefik_proxy

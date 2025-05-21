@@ -7,3 +7,15 @@ services:
     volumes:
       - "/home/hades/Programming/AriaNg-1.3.7:/usr/local/apache2/htdocs/"
     restart: "unless-stopped"
+    networks:
+      - traefik_proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ariang.rule=Host(`ariang.hades-linux-mbp.lan`)"
+      - "traefik.http.routers.ariang.entrypoints=web"
+      - "traefik.http.services.ariang.loadbalancer.server.port=80"
+
+networks:
+  traefik_proxy:
+    external: true
+    name: traefik_proxy
