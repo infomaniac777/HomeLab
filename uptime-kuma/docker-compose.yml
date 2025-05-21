@@ -7,7 +7,19 @@ services:
     ports:
       - "3002:3001"
     restart: unless-stopped
+    networks:
+      - traefik_proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.uptime-kuma.rule=Host(`uptime-kuma.hades-linux-mbp.lan`)"
+      - "traefik.http.routers.uptime-kuma.entrypoints=web"
+      - "traefik.http.services.uptime-kuma.loadbalancer.server.port=3001"
 
 volumes:
   uptime-kuma:
     name: uptime-kuma
+
+networks:
+  traefik_proxy:
+    external: true
+    name: traefik_proxy
