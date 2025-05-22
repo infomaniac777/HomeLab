@@ -8,6 +8,7 @@ services:
       - "--providers.docker=true" # To discover services running in Docker
       - "--providers.docker.exposedbydefault=false" # Only expose containers that have explicit Traefik labels
       - "--entrypoints.web.address=:80"
+      - "--metrics.prometheus=true"
       # Add more entrypoints if needed, e.g., for HTTPS
       # - "--entrypoints.websecure.address=:443"
       # - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
@@ -24,6 +25,11 @@ services:
       # - "./config/:/etc/traefik/config/:ro" # Optional: For dynamic configuration files
     networks:
       - traefik_proxy # Use a dedicated network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.hades-linux-mbp.lan`)"
+      - "traefik.http.routers.traefik-dashboard.service=api@internal"
+      - "traefik.http.routers.traefik-dashboard.entrypoints=web"
 
 networks:
   traefik_proxy:
