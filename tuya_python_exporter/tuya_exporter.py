@@ -4,6 +4,7 @@ import os
 import socket
 import logging
 import json
+import threading
 from prometheus_client import start_http_server, Gauge, Counter
 
 # Configure logging
@@ -21,16 +22,16 @@ tuya_exporter_issues_total = Counter('tuya_exporter_issues_total', 'Total number
 device_objects = {}
 device_configs_map = {}
 
-# --- Helper function to set gauges to nan ---
-def set_gauges_to_nan(device_id, device_name): # Renamed function
+
+def set_gauges_to_nan(device_id, device_name):
     """Sets all Prometheus gauges to NaN for the given device."""
     logger.debug(f"Setting gauges to NaN for device_id: {device_id}, device_name: {device_name}")
     voltage_gauge.labels(device_id=device_id, device_name=device_name).set(float('nan'))
     current_gauge.labels(device_id=device_id, device_name=device_name).set(float('nan'))
     power_gauge.labels(device_id=device_id, device_name=device_name).set(float('nan'))
 
-# --- Modified update_metrics function ---
-def update_metrics_persistent(device_id_to_update): # Renamed to avoid conflict if old code was pasted
+
+def update_metrics_persistent(device_id_to_update):
     """
     Connects to the Tuya device using a persistent connection (if available),
     fetches data, and updates Prometheus metrics.
@@ -43,9 +44,9 @@ def update_metrics_persistent(device_id_to_update): # Renamed to avoid conflict 
         return
 
     device_name = device_config['name']
-    device_ip = device_config['ip'] # Defined from device_config
-    device_key = device_config['key'] # Defined from device_config
-    device_version = device_config['version'] # Defined from device_config
+    device_ip = device_config['ip']
+    device_key = device_config['key']
+    device_version = device_config['version']
 
     d = device_objects.get(device_id_to_update)
 
@@ -57,7 +58,8 @@ def update_metrics_persistent(device_id_to_update): # Renamed to avoid conflict 
                 address=device_ip,
                 local_key=device_key,
                 version=device_version,
-                persist=True  # Enable persistent connection
+                persist=True,
+                connection_timeout=5
             )
             logger.info(f"Connection object created for {device_name}. Waiting a moment for connection to establish...")
             time.sleep(2) 
@@ -71,7 +73,8 @@ def update_metrics_persistent(device_id_to_update): # Renamed to avoid conflict 
             return
 
     try:
-        status = d.status()
+        d.updatedps(index=[18, 19, 20], nowait=False)
+        status = d.status(nowait=False)
         logger.debug(f"Status for {device_name} ({device_id_to_update} @ {device_ip}): {status}")
 
         if status and 'dps' in status:
@@ -180,7 +183,6 @@ if __name__ == '__main__':
         logger.error(f"An unexpected error occurred while loading {devices_config_path}: {e}")
         tuya_exporter_issues_total.labels(device_name="config_loading", level="error").inc()
 
-    # Populate device_objects and device_configs_map
     if DEVICES_CONFIG_LIST:
         for dev_conf in DEVICES_CONFIG_LIST:
             if all(k in dev_conf for k in ('id', 'name', 'ip', 'key', 'version')):
@@ -200,9 +202,20 @@ if __name__ == '__main__':
     logger.info(f"Prometheus exporter started on port {exporter_port}")
 
     while True:
-        for device_conf_main_loop in DEVICES_CONFIG_LIST: 
-            logger.info(f"Querying {device_conf_main_loop['name']} ({device_conf_main_loop['id']})...")
-            update_metrics_persistent(device_conf_main_loop['id']) 
+        threads = []
+        if not DEVICES_CONFIG_LIST:
+            logger.info(f"No devices configured. Waiting {scrape_interval} seconds.")
+        else:
+            for device_conf_main_loop in DEVICES_CONFIG_LIST:
+                device_id = device_conf_main_loop['id']
+                device_name = device_conf_main_loop['name']
+                logger.info(f"Creating thread to query {device_name} ({device_id})...")
+                thread = threading.Thread(target=update_metrics_persistent, args=(device_id,))
+                threads.append(thread)
+                thread.start()
+
+            for thread in threads:
+                thread.join()
         
-        logger.info(f"--- Completed polling cycle. Waiting {scrape_interval} seconds. ---")
+        logger.info(f"--- Completed polling cycle for all devices. Waiting {scrape_interval} seconds. ---")
         time.sleep(scrape_interval)
