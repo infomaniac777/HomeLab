@@ -1,0 +1,11 @@
+services:
+  tuya-smartplug-exporter:
+    image: tuya-smartplug-exporter:v1.0.4
+    container_name: tuya-smartplug-exporter
+    volumes:
+      - ./config.yaml:/config.yaml:ro
+    ports:
+      - "9999:9999"
+    restart: unless-stopped
+    environment:
+      TZ: 'Asia/Kolkata'
