@@ -12,11 +12,11 @@
   ],
   "apps": [
     {
-      "id": "39782336-00ee-4cbc-a586-f4ba079564a1",
-      "name": "Uptime Kuma",
-      "url": "http://192.168.0.7:3002",
+      "id": "66fd252d-b6df-41e3-bfe1-68f94c54d010",
+      "name": "cAdvisor",
+      "url": "http://192.168.0.7:9400",
       "appearance": {
-        "iconUrl": "https://cdn.jsdelivr.net/gh/loganmarchione/homelab-svg-assets/assets/uptimekuma.svg",
+        "iconUrl": "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/cadvisor.png",
         "appNameStatus": "normal",
         "positionAppName": "column",
         "lineClampAppName": 1,
@@ -35,7 +35,7 @@
       },
       "behaviour": {
         "isOpeningNewTab": true,
-        "externalUrl": "http://192.168.0.7:3002/dashboard"
+        "externalUrl": "http://192.168.0.7:9400/containers/"
       },
       "area": {
         "type": "wrapper",
@@ -46,105 +46,7 @@
       "shape": {
         "lg": {
           "location": {
-            "x": 4,
-            "y": 0
-          },
-          "size": {
-            "width": 1,
-            "height": 1
-          }
-        }
-      },
-      "integration": {
-        "type": null,
-        "properties": []
-      }
-    },
-    {
-      "id": "221b8b16-39ed-4a39-8468-f036b82756a5",
-      "name": "AriaNg",
-      "url": "http://192.168.0.7:8080",
-      "appearance": {
-        "iconUrl": "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/ariang.png",
-        "appNameStatus": "normal",
-        "positionAppName": "column",
-        "lineClampAppName": 1,
-        "appNameFontSize": 16
-      },
-      "network": {
-        "enabledStatusChecker": true,
-        "statusCodes": [
-          "200",
-          "301",
-          "302",
-          "304",
-          "307",
-          "308"
-        ]
-      },
-      "behaviour": {
-        "isOpeningNewTab": true,
-        "externalUrl": "http://192.168.0.7:8080"
-      },
-      "area": {
-        "type": "wrapper",
-        "properties": {
-          "id": "default"
-        }
-      },
-      "shape": {
-        "lg": {
-          "location": {
-            "x": 1,
-            "y": 0
-          },
-          "size": {
-            "width": 1,
-            "height": 1
-          }
-        }
-      },
-      "integration": {
-        "type": null,
-        "properties": []
-      }
-    },
-    {
-      "id": "72a7b56f-85ac-4cb4-bb17-5c25879add37",
-      "name": "Grafana",
-      "url": "http://192.168.0.7:3000",
-      "appearance": {
-        "iconUrl": "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/svg/grafana.svg",
-        "appNameStatus": "normal",
-        "positionAppName": "column",
-        "lineClampAppName": 1,
-        "appNameFontSize": 16
-      },
-      "network": {
-        "enabledStatusChecker": true,
-        "statusCodes": [
-          "200",
-          "301",
-          "302",
-          "304",
-          "307",
-          "308"
-        ]
-      },
-      "behaviour": {
-        "isOpeningNewTab": true,
-        "externalUrl": "http://192.168.0.7:3000/dashboards"
-      },
-      "area": {
-        "type": "wrapper",
-        "properties": {
-          "id": "default"
-        }
-      },
-      "shape": {
-        "lg": {
-          "location": {
-            "x": 2,
+            "x": 8,
             "y": 0
           },
           "size": {
@@ -208,11 +110,11 @@
       }
     },
     {
-      "id": "dd678f8d-0006-4954-a8ef-b82ce9ee42be",
-      "name": "Pi-hole",
-      "url": "http://192.168.0.7:8100/admin",
+      "id": "221b8b16-39ed-4a39-8468-f036b82756a5",
+      "name": "AriaNg",
+      "url": "http://ariang:80",
       "appearance": {
-        "iconUrl": "https://cdn.jsdelivr.net/gh/loganmarchione/homelab-svg-assets/assets/pihole.svg",
+        "iconUrl": "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/ariang.png",
         "appNameStatus": "normal",
         "positionAppName": "column",
         "lineClampAppName": 1,
@@ -231,7 +133,7 @@
       },
       "behaviour": {
         "isOpeningNewTab": true,
-        "externalUrl": "http://192.168.0.7:8100/admin/index.php"
+        "externalUrl": "http://ariang.hades-linux-mbp.lan/#!/downloading"
       },
       "area": {
         "type": "wrapper",
@@ -242,7 +144,7 @@
       "shape": {
         "lg": {
           "location": {
-            "x": 0,
+            "x": 1,
             "y": 0
           },
           "size": {
@@ -257,11 +159,11 @@
       }
     },
     {
-      "id": "66fd252d-b6df-41e3-bfe1-68f94c54d010",
-      "name": "cAdvisor",
-      "url": "http://192.168.0.7:9400",
+      "id": "6c33daa1-fb49-4e70-8c74-b1dc80816a9c",
+      "name": "HA",
+      "url": "http://192.168.0.7:12000",
       "appearance": {
-        "iconUrl": "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/cadvisor.png",
+        "iconUrl": "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/svg/home-assistant.svg",
         "appNameStatus": "normal",
         "positionAppName": "column",
         "lineClampAppName": 1,
@@ -280,7 +182,7 @@
       },
       "behaviour": {
         "isOpeningNewTab": true,
-        "externalUrl": "http://192.168.0.7:9400/containers/"
+        "externalUrl": "http://192.168.0.7:12000"
       },
       "area": {
         "type": "wrapper",
@@ -291,56 +193,7 @@
       "shape": {
         "lg": {
           "location": {
-            "x": 5,
-            "y": 0
-          },
-          "size": {
-            "width": 1,
-            "height": 1
-          }
-        }
-      },
-      "integration": {
-        "type": null,
-        "properties": []
-      }
-    },
-    {
-      "id": "20ec0e4e-c6dd-449e-96d3-432fc47970be",
-      "name": "Gotify",
-      "url": "http://192.168.0.7:3004",
-      "appearance": {
-        "iconUrl": "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/svg/gotify.svg",
-        "appNameStatus": "normal",
-        "positionAppName": "column",
-        "lineClampAppName": 1,
-        "appNameFontSize": 16
-      },
-      "network": {
-        "enabledStatusChecker": true,
-        "statusCodes": [
-          "200",
-          "301",
-          "302",
-          "304",
-          "307",
-          "308"
-        ]
-      },
-      "behaviour": {
-        "isOpeningNewTab": true,
-        "externalUrl": "http://192.168.0.7:3004"
-      },
-      "area": {
-        "type": "wrapper",
-        "properties": {
-          "id": "default"
-        }
-      },
-      "shape": {
-        "lg": {
-          "location": {
-            "x": 7,
+            "x": 6,
             "y": 0
           },
           "size": {
@@ -389,7 +242,203 @@
       "shape": {
         "lg": {
           "location": {
-            "x": 6,
+            "x": 4,
+            "y": 0
+          },
+          "size": {
+            "width": 1,
+            "height": 1
+          }
+        }
+      },
+      "integration": {
+        "type": null,
+        "properties": []
+      }
+    },
+    {
+      "id": "dd678f8d-0006-4954-a8ef-b82ce9ee42be",
+      "name": "Pi-hole",
+      "url": "http://192.168.0.7:8100/admin",
+      "appearance": {
+        "iconUrl": "https://cdn.jsdelivr.net/gh/loganmarchione/homelab-svg-assets/assets/pihole.svg",
+        "appNameStatus": "normal",
+        "positionAppName": "column",
+        "lineClampAppName": 1,
+        "appNameFontSize": 16
+      },
+      "network": {
+        "enabledStatusChecker": true,
+        "statusCodes": [
+          "200",
+          "301",
+          "302",
+          "304",
+          "307",
+          "308"
+        ]
+      },
+      "behaviour": {
+        "isOpeningNewTab": true,
+        "externalUrl": "http://192.168.0.7:8100/admin/index.php"
+      },
+      "area": {
+        "type": "wrapper",
+        "properties": {
+          "id": "default"
+        }
+      },
+      "shape": {
+        "lg": {
+          "location": {
+            "x": 7,
+            "y": 0
+          },
+          "size": {
+            "width": 1,
+            "height": 1
+          }
+        }
+      },
+      "integration": {
+        "type": null,
+        "properties": []
+      }
+    },
+    {
+      "id": "20ec0e4e-c6dd-449e-96d3-432fc47970be",
+      "name": "Gotify",
+      "url": "http://192.168.0.7:3004",
+      "appearance": {
+        "iconUrl": "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/svg/gotify.svg",
+        "appNameStatus": "normal",
+        "positionAppName": "column",
+        "lineClampAppName": 1,
+        "appNameFontSize": 16
+      },
+      "network": {
+        "enabledStatusChecker": true,
+        "statusCodes": [
+          "200",
+          "301",
+          "302",
+          "304",
+          "307",
+          "308"
+        ]
+      },
+      "behaviour": {
+        "isOpeningNewTab": true,
+        "externalUrl": "http://192.168.0.7:3004"
+      },
+      "area": {
+        "type": "wrapper",
+        "properties": {
+          "id": "default"
+        }
+      },
+      "shape": {
+        "lg": {
+          "location": {
+            "x": 5,
+            "y": 0
+          },
+          "size": {
+            "width": 1,
+            "height": 1
+          }
+        }
+      },
+      "integration": {
+        "type": null,
+        "properties": []
+      }
+    },
+    {
+      "id": "39782336-00ee-4cbc-a586-f4ba079564a1",
+      "name": "Uptime Kuma",
+      "url": "http://uptime-kuma:3001",
+      "appearance": {
+        "iconUrl": "https://cdn.jsdelivr.net/gh/loganmarchione/homelab-svg-assets/assets/uptimekuma.svg",
+        "appNameStatus": "normal",
+        "positionAppName": "column",
+        "lineClampAppName": 1,
+        "appNameFontSize": 16
+      },
+      "network": {
+        "enabledStatusChecker": true,
+        "statusCodes": [
+          "200",
+          "301",
+          "302",
+          "304",
+          "307",
+          "308"
+        ]
+      },
+      "behaviour": {
+        "isOpeningNewTab": true,
+        "externalUrl": "http://uptime-kuma.hades-linux-mbp.lan"
+      },
+      "area": {
+        "type": "wrapper",
+        "properties": {
+          "id": "default"
+        }
+      },
+      "shape": {
+        "lg": {
+          "location": {
+            "x": 2,
+            "y": 0
+          },
+          "size": {
+            "width": 1,
+            "height": 1
+          }
+        }
+      },
+      "integration": {
+        "type": null,
+        "properties": []
+      }
+    },
+    {
+      "id": "72a7b56f-85ac-4cb4-bb17-5c25879add37",
+      "name": "Grafana",
+      "url": "http://grafana:3000",
+      "appearance": {
+        "iconUrl": "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/svg/grafana.svg",
+        "appNameStatus": "normal",
+        "positionAppName": "column",
+        "lineClampAppName": 1,
+        "appNameFontSize": 16
+      },
+      "network": {
+        "enabledStatusChecker": true,
+        "statusCodes": [
+          "200",
+          "301",
+          "302",
+          "304",
+          "307",
+          "308"
+        ]
+      },
+      "behaviour": {
+        "isOpeningNewTab": true,
+        "externalUrl": "http://grafana.hades-linux-mbp.lan/dashboards"
+      },
+      "area": {
+        "type": "wrapper",
+        "properties": {
+          "id": "default"
+        }
+      },
+      "shape": {
+        "lg": {
+          "location": {
+            "x": 0,
             "y": 0
           },
           "size": {
