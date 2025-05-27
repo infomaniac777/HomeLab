@@ -1,0 +1,9 @@
+services:
+  flask-adb-server:
+    image: flask-adb-app:v1.0
+    container_name: flask-adb-server
+    ports:
+      - "8123:8123"
+    volumes:
+      - ~/.android:/root/.android
+    restart: unless-stopped
