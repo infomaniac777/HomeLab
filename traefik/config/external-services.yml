@@ -1,0 +1,13 @@
+http:
+  services:
+    router-service:
+      loadBalancer:
+        servers:
+          - url: "http://192.168.0.1:80"
+  
+  routers:
+    router-proxy:
+      rule: "Host(`router.lan`)"
+      service: router-service
+      entryPoints:
+        - web
