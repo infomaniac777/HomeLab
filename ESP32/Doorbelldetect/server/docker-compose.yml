@@ -1,5 +1,5 @@
 services:
-  audio_server:
+  doorbell-detector:
     container_name: doorbell-detector
     build: 
       context: .
