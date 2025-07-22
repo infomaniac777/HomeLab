@@ -13,6 +13,9 @@ import logging
 import os
 from prometheus_client import start_http_server, Counter, Gauge, Histogram 
 import time  # Import time module
+# Template matching imports
+from scipy import signal
+from scipy.io import wavfile
 
 # Configure single logger instance
 logger = logging.getLogger('doorbell_detector')
@@ -36,6 +39,10 @@ BUFFER_SIZE_CLASSIFY = SAMPLE_RATE * SAMPLE_WIDTH *  CHANNELS * BUFFER_DURATION
 RECORD_AUDIO = False
 MUSIC_CLASS_NAME = 'Music'
 
+# Template matching configuration
+CORRELATION_THRESHOLD = 0.7  # Adjust based on testing
+TEMPLATE_FILE_PATH = "krypya_darwaza_kholiye.wav"  # Path to your template file
+
 # Add these variables after existing configuration
 PACKET_STATS_INTERVAL = 60  # Print stats every second
 packet_count = 0
@@ -51,6 +58,8 @@ DATA_SIZE_OFFSET = 40
 
 # Prometheus Metrics
 DETECTION_REQUESTS_SENT = Counter('detection_requests_sent_total', 'Total number of detection requests sent')
+TEMPLATE_MATCHES = Counter('template_matches_total', 'Total number of template matches detected')
+CORRELATION_SCORE = Gauge('correlation_score', 'Latest correlation score')
 PACKET_RATE = Gauge('audio_packet_rate_pps', 'Incoming audio packet rate in packets per second')
 DATA_RATE_KBPS = Gauge('audio_data_rate_kbps', 'Incoming audio data rate in kilobits per second')
 CONNECTED_CLIENTS = Gauge('websocket_connected_clients', 'Number of currently connected WebSocket clients')
@@ -114,8 +123,117 @@ def create_wav_header(sample_rate=16000, channels=1, sample_width=2):
     
     return header
 
+def load_doorbell_template(template_path):
+    """Load and preprocess the doorbell template."""
+    try:
+        if os.path.exists(template_path):
+            # Load from WAV file
+            sample_rate, template_audio = wavfile.read(template_path)
+            
+            # Convert to mono if stereo first
+            if len(template_audio.shape) > 1:
+                template_audio = np.mean(template_audio, axis=1)
+            
+            # Resample if sample rate doesn't match
+            if sample_rate != SAMPLE_RATE:
+                logger.warning(f"Template sample rate {sample_rate} doesn't match expected {SAMPLE_RATE}. Resampling...")
+                # Calculate new length after resampling
+                new_length = int(len(template_audio) * SAMPLE_RATE / sample_rate)
+                template_audio = signal.resample(template_audio, new_length)
+                logger.info(f"Resampled template from {sample_rate} Hz to {SAMPLE_RATE} Hz")
+            
+            # Get template size from actual file length (after potential resampling)
+            template_size = len(template_audio)
+            template_duration = template_size / SAMPLE_RATE
+            
+            # Normalize template
+            template_audio = template_audio.astype(np.float32)
+            template_audio = template_audio / np.max(np.abs(template_audio))
+            
+            logger.info(f"Loaded doorbell template: {template_size} samples ({template_duration:.2f} seconds)")
+            return template_audio, template_size
+        else:
+            logger.error(f"Template file not found: {template_path}")
+            return None, 0
+    except Exception as e:
+        logger.error(f"Failed to load template: {e}")
+        return None, 0
+
+def normalize_audio(audio_data):
+    """Normalize audio data to [-1, 1] range."""
+    audio_float = audio_data.astype(np.float32)
+    max_val = np.max(np.abs(audio_float))
+    if max_val > 0:
+        return audio_float / max_val
+    return audio_float
+
+def calculate_correlation(audio_segment, template):
+    """Calculate normalized cross-correlation between audio segment and template."""
+    try:
+        # Normalize both signals
+        audio_norm = normalize_audio(audio_segment)
+        template_norm = template  # Already normalized during loading
+        
+        # Calculate cross-correlation
+        correlation = signal.correlate(audio_norm, template_norm, mode='valid')
+        
+        # Normalize correlation
+        correlation = correlation / (len(template_norm) * np.std(audio_norm) * np.std(template_norm))
+        
+        # Return maximum correlation value
+        max_correlation = np.max(np.abs(correlation))
+        return max_correlation
+    except Exception as e:
+        logger.error(f"Correlation calculation error: {e}")
+        return 0.0
+
+def perform_ai_classification(sliding_buffer, confidence_threshold):
+    """Perform AI-based classification on the audio buffer."""
+    try:
+        # Create WAV buffer for classification
+        wav_buffer = io.BytesIO()
+        wav_buffer.write(create_wav_header(SAMPLE_RATE, CHANNELS, SAMPLE_WIDTH))
+        wav_buffer.write(sliding_buffer[:BUFFER_SIZE_CLASSIFY].tobytes())
+        
+        # Update WAV header
+        wav_buffer.seek(RIFF_SIZE_OFFSET)
+        wav_buffer.write(struct.pack('<I', BUFFER_SIZE_CLASSIFY + 36))
+        wav_buffer.seek(DATA_SIZE_OFFSET)
+        wav_buffer.write(struct.pack('<I', BUFFER_SIZE_CLASSIFY))
+        
+        # Classify
+        wav_buffer.seek(0)
+        class_name, confidence = classify_wav(wav_buffer)
+        logger.debug(f"AI Predicted class: {class_name} (confidence: {confidence:.2%})")
+        
+        # Check if detection threshold is met
+        detected = class_name == MUSIC_CLASS_NAME and confidence > confidence_threshold
+        return detected, class_name, confidence
+    except Exception as e:
+        logger.error(f"AI classification error: {e}")
+        return False, "Error", 0.0
+
+def perform_template_matching(template_buffer, doorbell_template, template_threshold, template_size):
+    """Perform template matching on the audio buffer."""
+    try:
+        if doorbell_template is None or len(template_buffer) < template_size:
+            return False, 0.0
+        
+        correlation_score = calculate_correlation(template_buffer, doorbell_template)
+        CORRELATION_SCORE.set(correlation_score)  # Update Prometheus metric
+        
+        detected = correlation_score > template_threshold
+        if detected:
+            logger.info(f"Template match detected! Correlation: {correlation_score:.3f}")
+            TEMPLATE_MATCHES.inc()  # Increment Prometheus counter
+        
+        return detected, correlation_score
+    except Exception as e:
+        logger.error(f"Template matching error: {e}")
+        return False, 0.0
+
 class AudioProcessor:
-    def __init__(self, confidence_threshold): # Add confidence_threshold parameter
+    def __init__(self, confidence_threshold, detection_method='ai', template_threshold=CORRELATION_THRESHOLD, template_file=TEMPLATE_FILE_PATH):
         self.audio_queue = queue.Queue(maxsize=100)
         self.packet_stats = {'count': 0, 'bytes': 0, 'last_check': datetime.now()}
         self.server = WebsocketServer(port=WS_PORT, host='0.0.0.0')
@@ -126,6 +244,28 @@ class AudioProcessor:
         CONNECTED_CLIENTS.set(0)  # Initialize Prometheus gauge
         self.confidence_threshold = confidence_threshold # Store threshold
         self.last_detection_time = None  # Add timestamp for last detection
+        
+        # Detection method configuration
+        self.detection_method = detection_method
+        self.template_threshold = template_threshold
+        self.template_file = template_file
+        
+        # Template matching specific variables
+        self.doorbell_template = None
+        self.template_size = 0
+        self.template_buffer = None
+        self.template_buffer_pos = 0
+        
+        # Load template if using template matching
+        if self.detection_method == 'template':
+            self.doorbell_template, self.template_size = load_doorbell_template(self.template_file)
+            if self.doorbell_template is None:
+                logger.warning("No doorbell template loaded - template matching disabled")
+                logger.error("Template matching requested but no template available")
+                raise ValueError("Template file required for template matching mode")
+            else:
+                # Initialize template buffer with the correct size
+                self.template_buffer = np.zeros(self.template_size, dtype=np.int16)
 
     def new_client(self, client, server):
         logger.info(f"New client connected. ID: {client['id']}")
@@ -174,6 +314,42 @@ class AudioProcessor:
             self.packet_stats['bytes'] = 0
             self.packet_stats['last_check'] = now
             
+    def update_template_buffer(self, audio_chunk):
+        """Update the rolling template buffer with new audio data."""
+        chunk_size = len(audio_chunk)
+        
+        if chunk_size >= self.template_size:
+            # If chunk is larger than template size, take the last template_size samples
+            self.template_buffer = audio_chunk[-self.template_size:].copy()
+            self.template_buffer_pos = self.template_size
+        else:
+            # Add chunk to buffer
+            if self.template_buffer_pos + chunk_size > self.template_size:
+                # Buffer overflow - shift and add
+                shift_amount = (self.template_buffer_pos + chunk_size) - self.template_size
+                self.template_buffer = np.roll(self.template_buffer, -shift_amount)
+                self.template_buffer[-chunk_size:] = audio_chunk
+                self.template_buffer_pos = self.template_size
+            else:
+                # Normal addition
+                self.template_buffer[self.template_buffer_pos:self.template_buffer_pos + chunk_size] = audio_chunk
+                self.template_buffer_pos += chunk_size
+
+    def check_template_match(self):
+        """Check if current audio matches the doorbell template."""
+        if self.doorbell_template is None or self.template_buffer_pos < self.template_size:
+            return False, 0.0
+        
+        correlation_score = calculate_correlation(self.template_buffer, self.doorbell_template)
+        CORRELATION_SCORE.set(correlation_score)  # Update Prometheus metric
+        
+        if correlation_score > self.template_threshold:
+            logger.info(f"Template match detected! Correlation: {correlation_score:.3f}")
+            TEMPLATE_MATCHES.inc()  # Increment Prometheus counter
+            return True, correlation_score
+        
+        return False, correlation_score
+
     def classifier_thread(self):
         while True:
             try:
@@ -186,6 +362,10 @@ class AudioProcessor:
                 audio_chunk = np.frombuffer(message, dtype=np.int16)
                 chunk_size = len(audio_chunk)
                 
+                # Update template buffer for template matching
+                if self.detection_method == 'template':
+                    self.update_template_buffer(audio_chunk)
+                
                 # Add to sliding buffer
                 if self.buffer_position + chunk_size > len(self.sliding_buffer):
                     # Buffer wrap-around
@@ -197,32 +377,44 @@ class AudioProcessor:
                 
                 # Process when we have enough data
                 if self.buffer_position >= BUFFER_SIZE_CLASSIFY:
-                    # Create WAV buffer for classification
-                    wav_buffer = io.BytesIO()
-                    wav_buffer.write(create_wav_header(SAMPLE_RATE, CHANNELS, SAMPLE_WIDTH))
-                    wav_buffer.write(self.sliding_buffer[:BUFFER_SIZE_CLASSIFY].tobytes())
+                    detection_triggered = False
+                    detection_reason = ""
+                    final_confidence = 0.0
                     
-                    # Update WAV header
-                    wav_buffer.seek(RIFF_SIZE_OFFSET)
-                    wav_buffer.write(struct.pack('<I', BUFFER_SIZE_CLASSIFY + 36))
-                    wav_buffer.seek(DATA_SIZE_OFFSET)
-                    wav_buffer.write(struct.pack('<I', BUFFER_SIZE_CLASSIFY))
+                    # --- AI Classification ---
+                    if self.detection_method == 'ai':
+                        ai_detected, class_name, confidence = perform_ai_classification(
+                            self.sliding_buffer, self.confidence_threshold
+                        )
+                        
+                        if ai_detected:
+                            detection_triggered = True
+                            detection_reason = f"AI classification ({confidence:.2%})"
+                            final_confidence = max(final_confidence, confidence)
+                            logger.info(f"AI detected {MUSIC_CLASS_NAME} with confidence {confidence:.2%}")
                     
-                    # Classify
-                    wav_buffer.seek(0)
-                    class_name, confidence = classify_wav(wav_buffer)
-                    logger.debug(f"Predicted class: {class_name} (confidence: {confidence:.2%})")
-
-                    # Send notification only if above threshold and cooldown period passed
-                    if class_name  == MUSIC_CLASS_NAME and confidence > self.confidence_threshold:  # Use instance variable
-                        logger.info(f"Detected {MUSIC_CLASS_NAME} with confidence {confidence:.2%}")
+                    # --- Template Matching ---
+                    if self.detection_method == 'template':
+                        template_detected, correlation_score = perform_template_matching(
+                            self.sliding_buffer, self.doorbell_template, self.template_threshold, self.template_size
+                        )
+                        
+                        if template_detected:
+                            detection_triggered = True
+                            detection_reason = f"Template match (correlation: {correlation_score:.3f})"
+                            final_confidence = max(final_confidence, correlation_score)
+                            logger.info(f"Template matching detected doorbell (correlation: {correlation_score:.3f})")
+                    
+                    # Send notification if either method detected doorbell
+                    if detection_triggered:
+                        logger.info(f"Doorbell detected: {detection_reason}")
                         now = datetime.now()
                         if self.last_detection_time is None or \
                            (now - self.last_detection_time).total_seconds() > BUFFER_DURATION:
-                            send_detection(class_name, confidence)
-                            self.last_detection_time = now  # Update last detection time
+                            send_detection("Doorbell", final_confidence)
+                            self.last_detection_time = now
                         else:
-                            logger.info(f"Detection of {MUSIC_CLASS_NAME} suppressed due to cooldown.")
+                            logger.info("Detection suppressed due to cooldown.")
 
                     # Slide window by overlap amount
                     self.sliding_buffer = np.roll(self.sliding_buffer, -self.overlap)
@@ -240,6 +432,25 @@ def main():
         default=0.8,
         help='Minimum confidence threshold for triggering a notification (default: 0.8)'
     )
+    parser.add_argument(
+        '--detection-method',
+        type=str,
+        choices=['ai', 'template'],
+        default='ai',
+        help='Detection method: ai (AI classification) or template (correlation matching) (default: ai)'
+    )
+    parser.add_argument(
+        '--template-threshold',
+        type=float,
+        default=CORRELATION_THRESHOLD,
+        help=f'Minimum correlation threshold for template matching (default: {CORRELATION_THRESHOLD})'
+    )
+    parser.add_argument(
+        '--template-file',
+        type=str,
+        default=TEMPLATE_FILE_PATH,
+        help=f'Path to doorbell template WAV file (default: {TEMPLATE_FILE_PATH})'
+    )
     args = parser.parse_args()
     # --- End Argument Parsing ---
 
@@ -256,12 +467,21 @@ def main():
     logger.info(f"API Endpoint (API_ENDPOINT): {API_ENDPOINT}")
     logger.info(f"API Timeout (API_TIMEOUT): {API_TIMEOUT} seconds")
     logger.info(f"Confidence Threshold: {args.confidence_threshold}")
+    logger.info(f"Detection Method: {args.detection_method}")
+    logger.info(f"Template Threshold: {args.template_threshold}")
+    logger.info(f"Template File: {args.template_file}")
     logger.info("--------------------------")
     # --- End Log Initial Parameters ---
 
-    logger.info(f"Using confidence threshold: {args.confidence_threshold}") # Log the threshold
+    logger.info(f"Using detection method: {args.detection_method}")
+    logger.info(f"Using confidence threshold: {args.confidence_threshold}")
 
-    processor = AudioProcessor(confidence_threshold=args.confidence_threshold) # Pass threshold to processor
+    processor = AudioProcessor(
+        confidence_threshold=args.confidence_threshold,
+        detection_method=args.detection_method,
+        template_threshold=args.template_threshold,
+        template_file=args.template_file
+    )
 
     # Start Prometheus metrics server
     try:

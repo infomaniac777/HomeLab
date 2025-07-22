@@ -10,6 +10,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY audio_server.py .
 COPY audio_AI.py .
 
+# Copy the detection template file
+COPY krypya_darwaza_kholiye.wav .
+
 # WebSocket server port
 EXPOSE 3003 
 # Prometheus metrics port
