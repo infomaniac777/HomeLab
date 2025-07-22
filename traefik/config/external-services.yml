@@ -4,10 +4,21 @@ http:
       loadBalancer:
         servers:
           - url: "http://192.168.0.1:80"
+    
+    plex-service:
+      loadBalancer:
+        servers:
+          - url: "http://192.168.0.7:32400"
   
   routers:
     router-proxy:
       rule: "Host(`router.lan`)"
       service: router-service
+      entryPoints:
+        - web
+    
+    plex-proxy:
+      rule: "Host(`plex.hades-linux-mbp.lan`)"
+      service: plex-service
       entryPoints:
         - web
