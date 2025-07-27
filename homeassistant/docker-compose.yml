@@ -4,8 +4,13 @@ services:
     image: "ghcr.io/home-assistant/home-assistant:stable"
     volumes:
       - ./config:/config
-      - /etc/localtime:/etc/localtime:ro
       - /run/dbus:/run/dbus:ro
     restart: unless-stopped
     privileged: true
-    network_mode: host
+    ports:
+      - "12000:8123"
+    environment:
+      - TZ=Asia/Kolkata
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.homeassistant.rule=Host(`ha.yourdomain.com`)"
