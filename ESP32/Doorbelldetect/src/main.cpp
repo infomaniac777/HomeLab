@@ -32,6 +32,7 @@ https://github.com/gilmaimon/ArduinoWebsockets
 #define bufferLen 512    // Reduced from 1024
 int16_t sBuffer[bufferLen];
 
+const int LED_BUILTIN = 2;  // Built-in LED on ESP32 is on GPIO2
 const char* ssid = "YOUR_WIFI_SSID";
 const char* password = "YOUR_WIFI_PASSWORD";
 
@@ -40,6 +41,8 @@ const uint16_t websocket_server_port = 3003;  // <WEBSOCKET_SERVER_PORT>
 
 using namespace websockets;
 WebsocketsClient client;
+bool led_on = false;
+bool led_to_blink = false;
 
 void onEventsCallback(WebsocketsEvent event, String data) {
   if (event == WebsocketsEvent::ConnectionOpened) {
@@ -118,7 +121,10 @@ void micTask(void* parameter) {
     i2s_start(I2S_PORT);
 
     unsigned long lastPing = 0;
+    unsigned long lastBlinkStart = 0;
     const unsigned long PING_INTERVAL = 20000; // 20s ping interval
+    const unsigned int BLINK_DURATION = 100;   // LED on duration in ms
+    const unsigned int BLINK_GAP = 3000; // Minimum gap between blinks in ms
     size_t bytesIn = 0;
 
     while (1) {
@@ -137,7 +143,26 @@ void micTask(void* parameter) {
 
         esp_err_t result = i2s_read(I2S_PORT, &sBuffer, bufferLen, &bytesIn, portMAX_DELAY);
         if (result == ESP_OK) {
-            client.sendBinary((const char*)sBuffer, bytesIn);
+            led_to_blink = client.sendBinary((const char*)sBuffer, bytesIn);
+        }
+        else {
+          led_to_blink = false;
+        }
+  
+        // LED blink logic
+        if(led_on) {
+            if (millis() - lastBlinkStart > BLINK_DURATION) {
+              digitalWrite(LED_BUILTIN, LOW); // Turn off LED
+              led_on = false;
+            }
+        }
+        else {
+          if (led_to_blink && (millis() - lastBlinkStart > BLINK_GAP)) {
+              digitalWrite(LED_BUILTIN, HIGH); // Turn on LED
+              lastBlinkStart = millis();
+              led_on = true;
+              led_to_blink = false;
+          }
         }
     }
 }
@@ -145,6 +170,7 @@ void micTask(void* parameter) {
 void setup() {
   Serial.begin(9600);
 
+  pinMode(LED_BUILTIN, OUTPUT);
   connectWiFi();
   client.onEvent(onEventsCallback);
   connectWSServer();
