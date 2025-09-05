@@ -11,3 +11,6 @@
 
 # Tracing files
 FlameGraph/
+
+# Python cache files
+*.pyc
