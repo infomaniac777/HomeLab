@@ -11,6 +11,7 @@ services:
       - TZ=Asia/Kolkata
       - DNS1=8.8.8.8
       - DNS2=8.8.4.4
+      - FTLCONF_webserver_api_password=
     volumes:
       - 'pihole_data:/etc/pihole'
       - 'dnsmasq_data:/etc/dnsmasq.d'
