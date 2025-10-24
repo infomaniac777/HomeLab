@@ -1,12 +1,12 @@
 # More info at https://github.com/pi-hole/docker-pi-hole/ and https://docs.pi-hole.net/
 services:
   pihole:
+    hostname: pihole_docker
     container_name: pihole
     image: pihole/pihole:latest
     ports:
-      - "192.168.0.13:53:53/tcp"
-      - "192.168.0.13:53:53/udp"
-      - "192.168.0.13:8100:80"
+      - "192.168.0.7:53:53/tcp"
+      - "192.168.0.7:53:53/udp"
     environment:
       - TZ=Asia/Kolkata
       - DNS1=8.8.8.8
