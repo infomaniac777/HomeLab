@@ -14,3 +14,8 @@ FlameGraph/
 
 # Python cache files
 *.pyc
+
+# Home Assistant log and database files
+homeassistant/config/home-assistant.log
+homeassistant/config/home-assistant.log.1
+homeassistant/config/home-assistant_v2.db
