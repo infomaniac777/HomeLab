@@ -2,8 +2,6 @@ services:
   ariang:
     image: httpd:2.4
     container_name: ariang
-    ports:
-      - "21000:80"
     volumes:
       - "/home/hades/Programming/AriaNg/AriaNg-latest:/usr/local/apache2/htdocs/"
     restart: "unless-stopped"
@@ -11,8 +9,14 @@ services:
       - traefik_proxy
     labels:
       - "traefik.enable=true"
+      # HTTP → HTTPS redirect
+      - "traefik.http.routers.ariang-http.rule=Host(`ariang.hades-linux-mbp.lan`)"
+      - "traefik.http.routers.ariang-http.entrypoints=web"
+      - "traefik.http.routers.ariang-http.middlewares=redirect-to-https@docker"
+      # HTTPS
       - "traefik.http.routers.ariang.rule=Host(`ariang.hades-linux-mbp.lan`)"
-      - "traefik.http.routers.ariang.entrypoints=web"
+      - "traefik.http.routers.ariang.entrypoints=websecure"
+      - "traefik.http.routers.ariang.tls=true"
       - "traefik.http.services.ariang.loadbalancer.server.port=80"
 
 networks:

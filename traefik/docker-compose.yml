@@ -8,30 +8,33 @@ services:
       - "--providers.docker=true" # To discover services running in Docker
       - "--providers.docker.exposedbydefault=false" # Only expose containers that have explicit Traefik labels
       - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
       - "--metrics.prometheus=true"
       - "--providers.file.directory=/etc/traefik/config"
       - "--providers.file.watch=true"
-      # Add more entrypoints if needed, e.g., for HTTPS
-      # - "--entrypoints.websecure.address=:443"
-      # - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
-      # - "--certificatesresolvers.myresolver.acme.email=your-email@example.com"
-      # - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
     ports:
       - "80:80" # HTTP
-      # - "443:443" # HTTPS (if you enable it)
+      - "443:443" # HTTPS
       - "8080:8080" # Traefik Dashboard (if api.insecure=true)
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro" # So Traefik can listen to the Docker events
       - "./config:/etc/traefik/config:ro" # For dynamic configuration files
-      # - "./letsencrypt:/letsencrypt" # Volume to store Let's Encrypt certificates (if you enable HTTPS)
+      - "./certs:/etc/traefik/certs:ro" # TLS certificates
       # - "./traefik.yml:/etc/traefik/traefik.yml:ro" # Optional: For static configuration
+    extra_hosts:
+      - "host.docker.internal:host-gateway" # Allows proxying to services on the host (e.g. aria2c RPC)
     networks:
       - traefik_proxy # Use a dedicated network
     labels:
       - "traefik.enable=true"
+      # Dashboard on HTTPS
       - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.hades-linux-mbp.lan`)"
       - "traefik.http.routers.traefik-dashboard.service=api@internal"
-      - "traefik.http.routers.traefik-dashboard.entrypoints=web"
+      - "traefik.http.routers.traefik-dashboard.entrypoints=websecure"
+      - "traefik.http.routers.traefik-dashboard.tls=true"
+      # Shared HTTP→HTTPS redirect middleware (referenced by docker services as redirect-to-https@docker)
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
 
 networks:
   traefik_proxy:

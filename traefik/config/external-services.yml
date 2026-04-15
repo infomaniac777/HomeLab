@@ -3,22 +3,36 @@ http:
     router-service:
       loadBalancer:
         servers:
-          - url: "http://192.168.0.1:80"
-    
+          - url: http://192.168.0.1:80
+
     plex-service:
       loadBalancer:
         servers:
-          - url: "http://192.168.0.7:32400"
-  
+          - url: http://192.168.0.7:32400
+
+    # Proxies the aria2c JSON-RPC/WebSocket endpoint running on the host.
+    # Traefik terminates TLS so AriaNg (served over HTTPS) can connect without mixed-content errors.
+    aria2c-rpc-service:
+      loadBalancer:
+        servers:
+          - url: http://host.docker.internal:6800
+
   routers:
     router-proxy:
       rule: "Host(`router.lan`)"
       service: router-service
       entryPoints:
         - web
-    
+
     plex-proxy:
       rule: "Host(`plex.hades-linux-mbp.lan`)"
       service: plex-service
       entryPoints:
         - web
+
+    aria2c-rpc-proxy:
+      rule: "Host(`aria2c.hades-linux-mbp.lan`)"
+      service: aria2c-rpc-service
+      entryPoints:
+        - websecure
+      tls: {}

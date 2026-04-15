@@ -1,0 +1,9 @@
+tls:
+  certificates:
+    - certFile: /etc/traefik/certs/hades-linux-mbp.lan.crt
+      keyFile: /etc/traefik/certs/hades-linux-mbp.lan.key
+  stores:
+    default:
+      defaultCertificate:
+        certFile: /etc/traefik/certs/hades-linux-mbp.lan.crt
+        keyFile: /etc/traefik/certs/hades-linux-mbp.lan.key

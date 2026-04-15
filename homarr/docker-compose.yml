@@ -12,14 +12,18 @@ services:
       - ./icons:/app/public/icons
       - ./custom_imgs:/app/public/custom_imgs
       - ./data:/data
-    ports:
-      - '45705:7575'
     networks:
       - traefik_proxy
     labels:
       - "traefik.enable=true"
+      # HTTP → HTTPS redirect
+      - "traefik.http.routers.homarr-http.rule=Host(`homarr.hades-linux-mbp.lan`)"
+      - "traefik.http.routers.homarr-http.entrypoints=web"
+      - "traefik.http.routers.homarr-http.middlewares=redirect-to-https@docker"
+      # HTTPS
       - "traefik.http.routers.homarr.rule=Host(`homarr.hades-linux-mbp.lan`)"
-      - "traefik.http.routers.homarr.entrypoints=web"
+      - "traefik.http.routers.homarr.entrypoints=websecure"
+      - "traefik.http.routers.homarr.tls=true"
       - "traefik.http.services.homarr.loadbalancer.server.port=7575"
 
 networks:

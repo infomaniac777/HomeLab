@@ -1,0 +1,6 @@
+# Private keys - never commit
+certs/*.key
+
+# Root CA - keep private
+certs/rootCA.crt
+certs/rootCA.srl

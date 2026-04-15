@@ -2,8 +2,6 @@ services:
   grafana:
     image: grafana/grafana-enterprise
     container_name: grafana
-    ports:
-      - '3000:3000'
     environment:
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
@@ -17,9 +15,15 @@ services:
       - traefik_proxy
     labels:
       - "traefik.enable=true"
+      # HTTP → HTTPS redirect
+      - "traefik.http.routers.grafana-http.rule=Host(`grafana.hades-linux-mbp.lan`)"
+      - "traefik.http.routers.grafana-http.entrypoints=web"
+      - "traefik.http.routers.grafana-http.middlewares=redirect-to-https@docker"
+      # HTTPS
       - "traefik.http.routers.grafana.rule=Host(`grafana.hades-linux-mbp.lan`)"
-      - "traefik.http.routers.grafana.entrypoints=web"
-      - "traefik.http.services.grafana.loadbalancer.server.port=3000"    
+      - "traefik.http.routers.grafana.entrypoints=websecure"
+      - "traefik.http.routers.grafana.tls=true"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
 
 volumes:
   grafana-storage:
