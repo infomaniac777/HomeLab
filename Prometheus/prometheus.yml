@@ -4,21 +4,8 @@ global:
 scrape_configs:
   - job_name: 'node'
     static_configs:
-      - targets: ['192.168.0.7:9100','192.168.0.18:9100' ]
+      - targets: ['192.168.0.7:9100']
         
-  - job_name: 'process-exporter'
-    scrape_interval: 60s
-    static_configs:
-      - targets: ['192.168.0.7:9256']
-
-  - job_name: 'doorbell-detector'
-    static_configs:
-      - targets: ['192.168.0.7:10001']  
-
-  - job_name: 'tuya-smartplug-python-exporter'
-    static_configs:
-      - targets: ['192.168.0.7:9876']
-
   - job_name: 'traefik'
     static_configs:
       - targets: ['192.168.0.7:8080']      
