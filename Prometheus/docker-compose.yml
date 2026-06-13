@@ -7,11 +7,33 @@ services:
       - "9090:9090"
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./rules.yml:/etc/prometheus/rules.yml
       - prometheus-volume:/prometheus
     networks:
       - traefik_proxy
     extra_hosts:
       - "host.docker.internal:host-gateway"
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: alertmanager
+    restart: unless-stopped
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml
+    networks:
+      - traefik_proxy
+
+  alertmanager_gotify_bridge:
+    image: druggeri/alertmanager_gotify_bridge:latest
+    container_name: alertmanager_gotify_bridge
+    restart: unless-stopped
+    environment:
+      - GOTIFY_ENDPOINT=http://gotify_server:80/message
+      - GOTIFY_TOKEN=CHANGE_ME_GOTIFY_TOKEN
+    networks:
+      - traefik_proxy
 
 volumes:
   prometheus-volume:
