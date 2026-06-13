@@ -1,0 +1,12 @@
+groups:
+  - name: host_alerts
+    rules:
+      - alert: PowerSupplyDisconnected
+        expr: node_power_supply_online == 0
+        for: 60s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Power supply disconnected"
+          description: "The power supply {{ $labels.power_supply }} has been disconnected for more than a minute."
+          priority: "10"
