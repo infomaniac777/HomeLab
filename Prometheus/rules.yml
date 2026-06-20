@@ -10,3 +10,13 @@ groups:
           summary: "Power supply disconnected"
           description: "The power supply {{ $labels.power_supply }} has been disconnected for more than a minute."
           priority: "10"
+
+      - alert: HighFanSpeed
+        expr: (node_hwmon_fan_rpm / node_hwmon_fan_max_rpm) * 100 >= 90
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High fan speed detected"
+          description: "Fan {{ $labels.sensor }} on {{ $labels.instance }} is running at {{ $value | printf \"%.1f\" }}% of its maximum capacity."
+          priority: "10"
