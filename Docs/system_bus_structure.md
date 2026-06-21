@@ -80,30 +80,42 @@ graph TD
 
     %% Connections
     CPU --- IGPU
-    CPU ===| DMI Interface |=== PCH
+    CPU == "DMI Interface" === PCH
     
     %% Discrete GPU path
-    CPU === PCIe_x16 === AMDSW === DGPU
+    CPU === PCIe_x16
+    PCIe_x16 === AMDSW
+    AMDSW === DGPU
     AMDSW === HDMIAudio
     
     %% Thunderbolt path
-    CPU === PCIe_x8 === TB3_L === TB3_L_USB === EthAdapter
-    CPU === PCIe_x4 === TB3_R === TB3_R_USB === KingstonSSD
+    CPU === PCIe_x8
+    PCIe_x8 === TB3_L
+    TB3_L === TB3_L_USB
+    TB3_L_USB === EthAdapter
+
+    CPU === PCIe_x4
+    PCIe_x4 === TB3_R
+    TB3_R === TB3_R_USB
+    TB3_R_USB === KingstonSSD
     
     %% PCH Path
-    PCH --- PCIe_RP1 --- BroadcomWiFi
+    PCH --- PCIe_RP1
+    PCIe_RP1 --- BroadcomWiFi
     PCH --- PCH_USB
     PCH --- PCH_Legacy
     
     %% T2 Path
-    PCH === PCIe_RP17 === T2
-    T2 --- T2_NVMe === InternalNAND
+    PCH === PCIe_RP17
+    PCIe_RP17 === T2
+    T2 --- T2_NVMe
+    T2_NVMe === InternalNAND
     T2 --- T2_Bridge
     T2 --- T2_SEP
     T2 --- T2_Audio
     
     %% Virtual USB Path
-    T2_Bridge ===| apple-bce driver |===> VirtualUSB
+    T2_Bridge == "apple-bce driver" ==> VirtualUSB
     VirtualUSB --- KbTrackpad
     VirtualUSB --- Camera
     VirtualUSB --- TouchBarDisp
