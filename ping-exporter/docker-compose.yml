@@ -1,0 +1,18 @@
+services:
+  ping-exporter:
+    image: czerwonk/ping_exporter:latest
+    container_name: ping-exporter
+    restart: unless-stopped
+    ports:
+      - "9427:9427"
+    volumes:
+      - ./config.yml:/config/config.yml:ro
+    cap_add:
+      - NET_RAW
+    networks:
+      - traefik_proxy
+
+networks:
+  traefik_proxy:
+    external: true
+    name: traefik_proxy

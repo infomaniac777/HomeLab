@@ -1,0 +1,13 @@
+# ping_exporter configuration
+# See: https://github.com/czerwonk/ping_exporter
+
+targets:
+  - 1.1.1.1
+  - 8.8.8.8
+  - 192.168.0.1
+
+ping:
+  interval: 60s
+  timeout: 3s
+  history-size: 10
+  payload-size: 56
