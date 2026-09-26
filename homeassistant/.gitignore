@@ -1,2 +1,6 @@
-# Ignore entire config folder
-config/ 
+# Ignore sensitive local Home Assistant files
+config/secrets.yaml
+!config/secrets.example.yaml
+config/home-assistant.log*
+config/home-assistant_v2.db*
+config/.storage/

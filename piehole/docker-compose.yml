@@ -8,10 +8,10 @@ services:
       - "192.168.0.7:53:53/tcp"
       - "192.168.0.7:53:53/udp"
     environment:
-      - TZ=Asia/Kolkata
-      - DNS1=8.8.8.8
-      - DNS2=8.8.4.4
-      - FTLCONF_webserver_api_password=
+      - TZ=${TZ:-Asia/Kolkata}
+      - DNS1=${DNS1:-8.8.8.8}
+      - DNS2=${DNS2:-8.8.4.4}
+      - FTLCONF_webserver_api_password=${PIHOLE_PASSWORD:-}
     volumes:
       - 'pihole_data:/etc/pihole'
       - 'dnsmasq_data:/etc/dnsmasq.d'

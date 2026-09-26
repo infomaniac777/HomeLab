@@ -5,10 +5,12 @@ from flask_cors import CORS
 import select
 import platform
 import distro
+import os
 import sys
 import flask_monitoringdashboard as dashboard
 
-PORT = 8123
+PORT = int(os.getenv("PORT", "8123"))
+ADB_DEVICE = os.getenv("ADB_DEVICE", "192.168.0.8:5555")
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -91,7 +93,7 @@ def connect_adb_device():
     adb_commands = [
         "adb kill-server",
         "adb start-server",
-        "adb connect 192.168.0.8:5555"
+        f"adb connect {ADB_DEVICE}"
     ]
 
     # Execute each ADB command and log output/errors using send_command()

@@ -1,0 +1,23 @@
+{
+    "timestamp": 1735140594.0,
+    "devices": [
+        {
+            "id": "sample_device_id_here",
+            "ip": "192.168.1.100",
+            "uuid": "sample_uuid_here",
+            "active": 2,
+            "encrypt": true,
+            "productKey": "sample_product_key",
+            "token": true,
+            "wf_cfg": true,
+            "clientLink": 3,
+            "name": "Smart Plug Example",
+            "key": "sample_local_key",
+            "mac": "00:11:22:33:44:55",
+            "ability": 0,
+            "dev_type": "default",
+            "origin": "broadcast",
+            "ver": "3.3"
+        }
+    ]
+}

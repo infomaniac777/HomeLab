@@ -1,6 +1,24 @@
 # All dotfiles and dotfolders except specific ones we want to track
 .*
 !.gitignore
+!.gitmodules
+!.env.example
+
+# Environment & local secrets
+.env
+.env.*
+!.env.example
+secrets.yaml
+!secrets.example.yaml
+snapshot.json
+!snapshot.example.json
+
+# Docker secrets
+mantis/secrets/*.txt
+!mantis/secrets/*.txt.example
+
+# Dependencies
+node_modules/
 
 # Certificate and key files
 *.cert
@@ -14,8 +32,13 @@ FlameGraph/
 
 # Python cache files
 *.pyc
+__pycache__/
 
-# Home Assistant log and database files
+# Databases and runtime state
+*.sqlite
+*.db
+*.db-shm
+*.db-wal
 homeassistant/config/home-assistant.log
 homeassistant/config/home-assistant.log.1
 homeassistant/config/home-assistant_v2.db

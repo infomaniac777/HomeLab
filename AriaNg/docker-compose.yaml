@@ -3,7 +3,7 @@ services:
     image: httpd:2.4
     container_name: ariang
     volumes:
-      - "/home/hades/Programming/AriaNg/AriaNg-latest:/usr/local/apache2/htdocs/"
+      - "./AriaNg-latest:/usr/local/apache2/htdocs/"
     restart: "unless-stopped"
     networks:
       - traefik_proxy

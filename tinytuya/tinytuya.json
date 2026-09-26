@@ -2,5 +2,5 @@
     "apiKey": "",
     "apiSecret": "",
     "apiRegion": "in",
-    "apiDeviceID": "sample_device_id_here"
+    "apiDeviceID": "your_device_id_here"
 }

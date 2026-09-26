@@ -37,7 +37,7 @@ services:
     restart: unless-stopped
     environment:
       - GOTIFY_ENDPOINT=http://gotify_server:80/message
-      - GOTIFY_TOKEN=CHANGE_ME_GOTIFY_TOKEN
+      - GOTIFY_TOKEN=${GOTIFY_TOKEN:-CHANGE_ME_GOTIFY_TOKEN}
     networks:
       - traefik_proxy
 

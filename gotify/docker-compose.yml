@@ -5,8 +5,8 @@ services:
     ports:
       - 3004:80
     environment:
-      GOTIFY_DEFAULTUSER_PASS: 'admin'
-      TZ: 'Asia/Kolkata'  # Set the timezone for India
+      GOTIFY_DEFAULTUSER_PASS: ${GOTIFY_DEFAULTUSER_PASS:-admin}
+      TZ: ${TZ:-Asia/Kolkata}
     volumes:
       - data:/app/data  # Use a Docker volume named 'data'
     networks:

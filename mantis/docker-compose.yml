@@ -22,14 +22,23 @@ services:
   mysql:
     container_name: mantis_db
     image: mariadb:latest
+    secrets:
+      - mysql_root_password
+      - mysql_password
     environment:
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql_root_password
       MYSQL_DATABASE: bugtracker
       MYSQL_USER: mantisbt
-      MYSQL_PASSWORD: mantisbt
+      MYSQL_PASSWORD_FILE: /run/secrets/mysql_password
     volumes:
       - db:/var/lib/mysql
     restart: unless-stopped
+
+secrets:
+  mysql_root_password:
+    file: ./secrets/mysql_root_password.txt
+  mysql_password:
+    file: ./secrets/mysql_password.txt
 
 volumes:
   config:

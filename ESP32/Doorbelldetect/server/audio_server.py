@@ -74,11 +74,11 @@ total_disconnected = 0
 
 # Add new globals
 
-API_ENDPOINT = "http://192.168.0.7:3004/message"
+API_ENDPOINT = os.getenv("GOTIFY_ENDPOINT", "http://192.168.0.7:3004/message")
 API_TIMEOUT = 3  # seconds
 
 API_PARAMS = {
-    "token": "CHANGE_ME_GOTIFY_TOKEN",
+    "token": os.getenv("GOTIFY_TOKEN", "CHANGE_ME_GOTIFY_TOKEN"),
     "title": "Doorbell",
     "message": "Doorbell detected",
     "priority": 9,

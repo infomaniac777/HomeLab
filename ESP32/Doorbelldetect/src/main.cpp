@@ -33,10 +33,23 @@ https://github.com/gilmaimon/ArduinoWebsockets
 int16_t sBuffer[bufferLen];
 
 const int LED_BUILTIN = 2;  // Built-in LED on ESP32 is on GPIO2
-const char* ssid = "YOUR_WIFI_SSID";
-const char* password = "YOUR_WIFI_PASSWORD";
+// WiFi & Server configuration (can be overridden via build flags, e.g. -DWIFI_SSID=\"...\")
+#ifndef WIFI_SSID
+#define WIFI_SSID "YOUR_WIFI_SSID"
+#endif
 
-const char* websocket_server_host = "192.168.0.7";
+#ifndef WIFI_PASSWORD
+#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
+#endif
+
+#ifndef WS_SERVER_HOST
+#define WS_SERVER_HOST "192.168.0.7"
+#endif
+
+const char* ssid = WIFI_SSID;
+const char* password = WIFI_PASSWORD;
+
+const char* websocket_server_host = WS_SERVER_HOST;
 const uint16_t websocket_server_port = 3003;  // <WEBSOCKET_SERVER_PORT>
 
 using namespace websockets;
